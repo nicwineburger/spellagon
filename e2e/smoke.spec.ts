@@ -142,7 +142,7 @@ test("the More menu opens, closes, and leads to Rankings", async ({ page }) => {
   await expect(more).toBeFocused();
 
   await more.click();
-  await page.getByRole("heading", { name: "Spellagon" }).click();
+  await page.locator(".controls").click({ position: { x: 5, y: 5 } });
   await expect(help).toBeHidden();
 
   await more.click();
@@ -177,9 +177,10 @@ test("a long word stays inside the page on a narrow phone", async ({ page }) => 
 test("the toolbar fits a 320px phone without overlap", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await play(page);
-  const date = await page.locator(".toolbar .date").boundingBox();
+  const back = await page.getByRole("button", { name: "Back" }).boundingBox();
   const nav = await page.locator(".toolbar nav").boundingBox();
-  expect((date?.x ?? 0) + (date?.width ?? 0)).toBeLessThanOrEqual(nav?.x ?? 0);
+  expect((back?.x ?? 0) + (back?.width ?? 0)).toBeLessThanOrEqual(nav?.x ?? 0);
+  expect((nav?.x ?? 0) + (nav?.width ?? 0)).toBeLessThanOrEqual(320);
 });
 
 test("a dialog fits a landscape phone and keeps its close button in reach", async ({ page }) => {
@@ -201,4 +202,10 @@ test("closing a dialog opened from More returns focus to More", async ({ page })
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "More" })).toBeFocused();
   await expect(page.locator("#more-menu")).toBeHidden();
+});
+
+test("the back arrow returns to the splash", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 });

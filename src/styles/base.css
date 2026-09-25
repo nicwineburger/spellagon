@@ -41,7 +41,7 @@ a {
   min-width: 5.5em;
   height: 3em;
   padding: 0 1.2em;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--button-border);
   border-radius: var(--radius-pill);
   background: var(--bg);
   color: var(--ink);

@@ -87,7 +87,7 @@ function go(to: number) {
             {/if}
           </span>
         </span>
-        <svg class="chevron" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6.5l6 6 6-6" /></svg>
+        <svg class="chevron" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 8l7 7 7-7" /></svg>
         <span class="sr-only">{open ? "Hide" : "Show"} your words</span>
       </button>
     {/if}
@@ -157,7 +157,7 @@ function go(to: number) {
     align-items: center;
     width: 100%;
     height: 45px;
-    padding: 0 12px;
+    padding: 0 12px 0 18px;
     border: 0;
     background: none;
     text-align: left;
@@ -214,11 +214,11 @@ function go(to: number) {
 
   .chevron {
     flex: none;
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     fill: none;
     stroke: var(--ink);
-    stroke-width: 1.5;
+    stroke-width: 2;
     transition: transform 0.25s;
   }
 

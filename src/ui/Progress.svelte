@@ -112,7 +112,7 @@ $effect(() => {
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: var(--progress);
+    background: var(--progress-dot);
     transform: translate(-50%, -50%);
     transition: background-color 200ms 100ms;
   }
@@ -129,8 +129,8 @@ $effect(() => {
     position: absolute;
     top: 50%;
     display: flex;
-    width: 1.875em;
-    height: 1.875em;
+    width: 1.875rem;
+    height: 1.875rem;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
