@@ -1,0 +1,16 @@
+/* Self-hosted from Fontsource, latin subset only. No font CDN, per docs/style.md. */
+@font-face {
+  font-family: "Libre Franklin Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/libre-franklin/files/libre-franklin-latin-wght-normal.woff2")
+    format("woff2-variations");
+}
+@font-face {
+  font-family: "Rokkitt Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/rokkitt/files/rokkitt-latin-wght-normal.woff2") format("woff2-variations");
+}
