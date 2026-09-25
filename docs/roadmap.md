@@ -17,9 +17,12 @@ Status: `[ ]` to do, `[~]` in progress, `[x]` done with the pull request number.
 - [x] Closer phone toolbar, progress marker and buttons. Done in #6.
 - [x] Past puzzles: every day back to May 9, 2018, from a calendar, with a link per day. Done in #7.
 - [x] Match the hive, buttons, progress row and phone toolbar to the pixel, measured from a 3x screenshot. Done in #8.
+- [x] Capitalize found words in the text, since Safari capitalizes across spans. Done in #9.
+- [x] Play the original's puzzles, fetched daily into the repo by a workflow, with ours as the fallback. Done in #10.
 
 ## Next
 - [ ] Share button that copies the rank and score as text.
+- [ ] Make the repo private when hosting moves to Cloudflare, since it now holds the original's puzzles.
 - [ ] Move hosting to Cloudflare Pages. The `cloudflare` CI job is ready and waits on its repo variable and secrets.
-- [ ] Branch protection on main once CI has run once.
+- [ ] Branch protection on main once CI has run once. The `puzzles` workflow pushes to main, so it needs a bypass.
 - [ ] Review the word list by hand for obscure words, starting with the most frequent answers.

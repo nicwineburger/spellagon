@@ -1,6 +1,7 @@
 <script lang="ts">
 import { untrack } from "svelte";
-import { FIRST_DATE, puzzleFor, rankFor, ranksFor, score } from "../game/puzzle";
+import { FIRST_DATE, rankFor, ranksFor, score } from "../game/puzzle";
+import { ensure, puzzleOn } from "../game/source.svelte";
 import { loadProgress } from "../game/store";
 
 let {
@@ -43,6 +44,11 @@ interface Day {
   queen: boolean;
 }
 
+// The month's puzzles load in the background. Days redraw when they arrive.
+$effect(() => {
+  void ensure(month);
+});
+
 const days = $derived.by((): (Day | null)[] => {
   const [y, m] = month.split("-").map(Number) as [number, number];
   const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -51,14 +57,14 @@ const days = $derived.by((): (Day | null)[] => {
   for (let d = 1; d <= count; d++) {
     const date = `${month.slice(0, 8)}${String(d).padStart(2, "0")}`;
     const open = date >= FIRST_DATE && date <= today;
-    const found = open ? loadProgress(date).found : [];
+    const found = open ? loadProgress(puzzleOn(date).id).found : [];
     let fill: number | null = null;
     let rank: string | null = null;
     let points = 0;
     let queen = false;
     if (found.length > 0) {
       // Only days with progress pay for working out the puzzle.
-      const puzzle = puzzleFor(date);
+      const puzzle = puzzleOn(date);
       points = found.filter((w) => puzzle.answers.includes(w)).reduce((sum, w) => sum + score(w), 0);
       // The hive fills a step per rank, so early ranks still show. Genius and Queen Bee fill it.
       const ranks = ranksFor(puzzle.maxScore);

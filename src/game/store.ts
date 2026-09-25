@@ -1,4 +1,4 @@
-/** Progress lives in localStorage, one entry per puzzle date. Nothing leaves the browser. */
+/** Progress lives in localStorage, one entry per puzzle id (see `Puzzle.id`). Nothing leaves the browser. */
 export interface Progress {
   /** Found words in the order they were found. */
   found: string[];
@@ -7,7 +7,8 @@ export interface Progress {
   queen: boolean;
 }
 
-const key = (date: string) => `spellagon:${date}`;
+/** The localStorage key for a puzzle id, which the storage event also reports. */
+export const storageKey = (id: string) => `spellagon:${id}`;
 
 export const emptyProgress = (): Progress => ({ found: [], genius: false, queen: false });
 
@@ -20,9 +21,9 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   };
 }
 
-export function loadProgress(date: string, storage: Storage | undefined = globalThis.localStorage): Progress {
+export function loadProgress(id: string, storage: Storage | undefined = globalThis.localStorage): Progress {
   try {
-    const raw = storage?.getItem(key(date));
+    const raw = storage?.getItem(storageKey(id));
     if (!raw) return emptyProgress();
     const data = JSON.parse(raw) as Partial<Progress>;
     return {
@@ -35,9 +36,9 @@ export function loadProgress(date: string, storage: Storage | undefined = global
   }
 }
 
-export function saveProgress(date: string, progress: Progress, storage: Storage | undefined = globalThis.localStorage) {
+export function saveProgress(id: string, progress: Progress, storage: Storage | undefined = globalThis.localStorage) {
   try {
-    storage?.setItem(key(date), JSON.stringify(progress));
+    storage?.setItem(storageKey(id), JSON.stringify(progress));
   } catch {
     // Storage can be full or blocked. The game still plays, it just will not remember.
   }

@@ -1,0 +1,64 @@
+name: puzzles
+# Fetches the original's daily puzzles into public/puzzles/ and deploys them.
+# Scheduled runs start at 3:10 a.m. Eastern (07:10 UTC in daylight time, 08:10 UTC in standard time) and try
+# again every half hour until 8:40 a.m. Eastern, so one failure or a late puzzle never costs the day. Once today's
+# puzzle is in, a run finds nothing to do and stops. A manual run backfills every missing day since 2018.
+on:
+  schedule:
+    - cron: "10,40 7-13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: puzzles
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # The script saves as it goes, so a failure or the step's timeout still leaves what arrived to commit.
+      - name: Fetch missing puzzles
+        id: fetch
+        continue-on-error: true
+        timeout-minutes: 100
+        env:
+          # Scheduled runs look back 30 days. A manual run fills every gap back to 2018.
+          WINDOW: ${{ github.event_name == 'schedule' && '--days 30' || '' }}
+        run: node scripts/fetch-nyt.mjs $WINDOW
+      - name: Commit and deploy
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- public/puzzles)" ]; then
+            echo "No new puzzles."
+            exit 0
+          fi
+          latest=$(ls public/puzzles/[0-9]*.json | sort | tail -1 | xargs basename | cut -c1-7)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/puzzles
+          git commit -m "chore(puzzles): add puzzles through $latest"
+          # Main may have moved during a long run. Only this workflow touches public/puzzles, so a rebase is clean.
+          pushed=0
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then pushed=1; break; fi
+            sleep $((attempt * 10))
+          done
+          [ "$pushed" = 1 ] || { echo "::error::Could not push the new puzzles."; exit 1; }
+          # A push made with this token starts no workflows, so start the checks and deploy by hand.
+          gh workflow run ci.yml --ref main
+      - name: Report a missing day
+        if: steps.fetch.outcome == 'failure'
+        run: |
+          echo "::error::Today's puzzle could not be fetched. See the fetch step."
+          exit 1

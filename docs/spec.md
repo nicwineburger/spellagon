@@ -52,8 +52,17 @@ Typed letters not in the hive show in light gray. The center letter shows in yel
 - Rankings opens from the progress bar or the More menu. Genius and Queen Bee each get one notice per puzzle.
 
 ## Data
-- `src/game/words.txt` is the answer dictionary. `src/game/puzzles.txt` is the schedule: one line per day from 2026-09-01,
-  center letter first. `src/game/archive.txt` runs backward from 2026-08-31 to 2018-05-09, one line per day. Each
-  archive puzzle is a daily letter set with a different center, so no day repeats another. All three are generated
-  by `pnpm words` and committed. The schedule and the archive only grow at their ends.
-- Progress is stored in localStorage under `spellagon:<date>`: found words in order, and which notices were shown.
+- The original's puzzles, where the site has them. `public/puzzles/YYYY-MM.json` holds one entry per day: the
+  seven letters with the center first, then the answers, separated by spaces. `public/puzzles/index.json` lists
+  the months. The site fetches only these files, from its own origin, when a month is needed.
+- The `puzzles` workflow runs `scripts/fetch-nyt.mjs` from 3:10 a.m. Eastern and every half hour after until
+  about 9 a.m. It fetches missing days of the last 30, today first, from the original's public JSON, commits
+  them, and starts the deploy. A manual run backfills every missing day since May 9, 2018, saving as it goes.
+  A run fails when today's puzzle could not be fetched.
+- Until today's puzzle is deployed, the splash says it is on its way and offers past puzzles, and a player
+  mid-game at 3 a.m. is sent there. At 9 a.m. Eastern the wait ends and our own puzzle stands in.
+- Any day without the original's puzzle falls back to our own: `src/game/puzzles.txt` from 2026-09-01 and
+  `src/game/archive.txt` back to 2018-05-09, answered from `src/game/words.txt`. All three come from `pnpm words`,
+  and the schedule and archive only grow at their ends.
+- Progress is stored in localStorage under `spellagon:<id>`: `<date>/nyt` for the original's puzzle and `<date>`
+  for ours, so the two never share found words. Each holds the found words in order and which notices were shown.
