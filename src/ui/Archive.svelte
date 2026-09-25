@@ -94,7 +94,7 @@ $effect(() => {
 
 <header class="toolbar">
   <button type="button" class="back" aria-label="Back" onclick={onback} bind:this={back}>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5L7.5 12l7.5 7.5" /></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3.8L6.8 12l8.2 8.2" /></svg>
   </button>
   <h1>Past Puzzles</h1>
 </header>
@@ -176,7 +176,7 @@ $effect(() => {
     height: 44px;
     align-items: center;
     justify-content: center;
-    margin-left: -10px;
+    margin-left: -7px;
     padding: 0;
     border: 0;
     background: none;

@@ -16,6 +16,7 @@ Status: `[ ]` to do, `[~]` in progress, `[x]` done with the pull request number.
 
 - [x] Closer phone toolbar, progress marker and buttons. Done in #6.
 - [x] Past puzzles: every day back to May 9, 2018, from a calendar, with a link per day. Done in #7.
+- [x] Match the hive, buttons, progress row and phone toolbar to the pixel, measured from a 3x screenshot. Done in #8.
 
 ## Next
 - [ ] Share button that copies the rank and score as text.

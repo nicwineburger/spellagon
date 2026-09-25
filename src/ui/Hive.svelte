@@ -46,18 +46,20 @@ let held = $state<number | null>(null);
     >
       <svg viewBox="0 0 120 103.92" aria-hidden="true">
         <polygon points={HEX} />
-        <text x="50%" y="50%" dy="0.35em" class:hidden={hidden && i > 0}>{letter}</text>
+        <text x="50%" y="50%" dy="0.38em" class:hidden={hidden && i > 0}>{letter}</text>
       </svg>
     </button>
   {/each}
 </div>
 
 <style>
+  /* The hive is 1.03923 times as tall as it is wide, measured on its own width. Three rows of flat-top
+     hexagons then step 90.3px apart in a 261px hive, as in the original. */
   .hive {
     position: relative;
     width: 90%;
+    aspect-ratio: 1 / 1.03923;
     margin: 25px auto;
-    padding-bottom: 103.923%;
   }
 
   .cell {
@@ -151,7 +153,6 @@ let held = $state<number | null>(null);
     .hive {
       width: 70%;
       margin: 4vh auto;
-      padding-bottom: 80.829%;
     }
 
     text {

@@ -59,7 +59,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
 
 <header class="toolbar" {inert}>
   <button type="button" class="back" aria-label="Back" onclick={onback}>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5L7.5 12l7.5 7.5" /></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3.8L6.8 12l8.2 8.2" /></svg>
   </button>
   {#if past}<span class="past" aria-hidden="true"
       ><span class="wide-date">{shortDate}</span><span class="narrow-date">{numericDate}</span></span
@@ -82,7 +82,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
         bind:this={moreButton}
         onclick={() => (menuOpen = !menuOpen)}
       >
-        More<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 4h9L6 9z" /></svg>
+        More<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 3.5h10L6 9z" /></svg>
       </button>
       <ul id="more-menu" class="menu" hidden={!menuOpen}>
         <li><button type="button" onclick={() => choose("help")}>How to Play</button></li>
@@ -113,7 +113,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
     height: 44px;
     align-items: center;
     justify-content: center;
-    margin-left: -10px;
+    margin-left: -7px;
     padding: 0;
   }
 
@@ -190,7 +190,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
   .tool svg {
     width: 12px;
     height: 12px;
-    margin-left: 6px;
+    margin-left: 9px;
     fill: var(--ink);
     transition: transform 0.25s;
   }
@@ -242,7 +242,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
 
   @media (max-width: 767px) {
     .toolbar {
-      padding: 0 var(--space-2) 0 var(--space-3);
+      padding: 0 0 0 var(--space-3);
     }
 
     /* Phones show only the back arrow on the left, as the original does. The name stays for screen readers. */
@@ -273,7 +273,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
     }
 
     .tool {
-      padding: 0 var(--space-2);
+      padding: 0 11px;
       font-size: var(--text-sm);
     }
   }

@@ -54,7 +54,7 @@ $effect(() => {
     display: flex;
     align-items: center;
     width: 100%;
-    height: 50px;
+    height: 58px;
     padding: 0;
     border: 0;
     background: none;
@@ -66,7 +66,7 @@ $effect(() => {
   .rank {
     position: relative;
     display: block;
-    min-width: 5em;
+    min-width: 85px;
     font-size: var(--text-md);
     font-weight: 700;
     white-space: nowrap;
@@ -129,8 +129,8 @@ $effect(() => {
     position: absolute;
     top: 50%;
     display: flex;
-    width: 1.875rem;
-    height: 1.875rem;
+    width: 2rem;
+    height: 2rem;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
