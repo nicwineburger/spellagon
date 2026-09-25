@@ -32,10 +32,19 @@ Typed letters not in the hive show in light gray. The center letter shows in yel
 ## Screens
 - Splash: yellow, the mark, the name, one line, Play. A returning player sees "Welcome Back", the word count, and Continue.
 - Game: the progress bar and word list, then the input, hive, and Delete, Shuffle and Enter.
-  On a phone the word list folds into one bar that shows recent words and opens over the hive.
   From 768px the hive sits left and the word list is an open panel on the right.
-- Toolbar: Yesterday's Answers, Hints (the letter by length grid and two-letter list, counting words left), How to Play.
-- Rankings opens from the progress bar. Genius and Queen Bee each get one notice per puzzle.
+- Word list on a phone: one bar with found words newest first. A word that does not fit drops out of sight whole.
+  A new word squishes in over 700ms. Empty, it reads "Your words …". A thin chevron opens a drawer to 68vh over 200ms,
+  the hive fades out, and the bar crossfades to "You have found N words".
+- Word list, open: alphabetical, top to bottom and column by column, in 2 columns (3 from 992px). A full page scrolls
+  sideways to the next, with snap, page dots and previous and next arrows. Pangrams are bold.
+- Toolbar: the name and date on the left. Text buttons on the right: Yesterday (Yesterday's Answers from 768px),
+  Hints (the letter by length grid and two-letter list, counting words left), and More, a menu with How to Play and
+  Rankings. Escape or a click outside closes the menu.
+- Dialogs fill a phone screen and slide up. From 768px they are a 540px card (667px from 992px) that scales in.
+- Yesterday's Answers: the date, the letters with the center one yellow, the answers with a check on each word found,
+  and, if any were found, the rank reached with a short line of our own.
+- Rankings opens from the progress bar or the More menu. Genius and Queen Bee each get one notice per puzzle.
 
 ## Data
 - `src/game/words.txt` is the answer dictionary. `src/game/puzzles.txt` is the schedule: one line per day from 2026-09-01,

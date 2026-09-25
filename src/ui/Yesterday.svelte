@@ -1,69 +1,84 @@
 <script lang="ts">
 import { longDate } from "../game/date";
 import { isPangram, type Puzzle } from "../game/puzzle";
+import { finalRank } from "../game/quips";
 
 let { puzzle, found }: { puzzle: Puzzle; found: string[] } = $props();
 
-const letters = $derived([puzzle.center, ...puzzle.outer]);
+const result = $derived(finalRank(puzzle, found));
 </script>
 
 <p class="date">{longDate(puzzle.date)}</p>
 <p class="letters" aria-label="Letters, center first">
-  {#each letters as letter, i (letter)}<span class:center={i === 0}>{letter}</span>{/each}
+  <span class="center">{puzzle.center}</span>{puzzle.outer.join("")}
 </p>
+{#if result}
+  <p class="rank"><em>Rank: {result.rank}.</em> {result.quip}</p>
+{/if}
 <ul class="answers">
   {#each puzzle.answers as word (word)}
-    <li class:pangram={isPangram(word)}>
-      {word}{#if found.includes(word)}<span class="found" aria-label="found"> &#10003;</span>{/if}
+    {@const got = found.includes(word)}
+    <li class:pangram={isPangram(word)} class:found={got}>
+      {word}{#if got}<span class="sr-only">, found</span>{/if}
     </li>
   {/each}
 </ul>
-<p class="note">Pangrams are in bold. A check marks a word you found.</p>
 
 <style>
   .date {
-    color: var(--ink-muted);
+    color: var(--ink);
+    font-weight: 600;
   }
 
   .letters {
-    display: flex;
-    gap: 0.5em;
     margin: var(--space-3) 0 var(--space-4);
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 0.4em;
     text-transform: uppercase;
   }
 
   .letters .center {
-    padding: 0 0.3em;
-    border-radius: 3px;
-    background: var(--bee);
-    color: var(--bee-ink);
+    color: var(--check);
+  }
+
+  .rank {
+    margin-bottom: var(--space-4);
   }
 
   .answers {
-    column-width: 9em;
+    column-count: 2;
     column-gap: var(--space-5);
   }
 
   li {
-    padding: 4px 0;
-    border-bottom: 1px solid var(--rule);
+    position: relative;
+    padding: 7px 0 0 24px;
+    line-height: 1.5;
     text-transform: capitalize;
     break-inside: avoid;
+  }
+
+  /* The check mark: a short L turned 45 degrees. */
+  li.found::before {
+    position: absolute;
+    top: 11px;
+    left: 5px;
+    width: 6px;
+    height: 12px;
+    border: solid var(--check);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    content: "";
   }
 
   .pangram {
     font-weight: 700;
   }
 
-  .found {
-    color: var(--ink-muted);
-  }
-
-  .note {
-    margin-top: var(--space-4);
-    color: var(--ink-muted);
-    font-size: var(--text-sm);
+  @media (min-width: 768px) {
+    .answers {
+      column-count: 3;
+    }
   }
 </style>

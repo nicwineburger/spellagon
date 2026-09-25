@@ -14,7 +14,7 @@ import Toolbar, { type Panel } from "./ui/Toolbar.svelte";
 import WordList from "./ui/WordList.svelte";
 import Yesterday from "./ui/Yesterday.svelte";
 
-type Dialog = Panel | "rankings" | "genius" | "queen";
+type Dialog = Panel | "genius" | "queen";
 type Message = { id: number; text: string; kind: "error" | "praise" | "pangram"; points?: number };
 
 const startDate = puzzleDate();
@@ -367,14 +367,6 @@ const chars = $derived(
     display: flex;
     flex-direction: column;
     margin: 0 12px;
-  }
-
-  .game:not(.wide) .status :global(.wordlist.open) {
-    position: absolute;
-    top: 50px;
-    right: 0;
-    left: 0;
-    height: 68vh;
   }
 
   .controls {

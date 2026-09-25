@@ -1,12 +1,35 @@
 <script lang="ts" module>
-export type Panel = "yesterday" | "hints" | "help";
+export type Panel = "yesterday" | "hints" | "help" | "rankings";
 </script>
 
 <script lang="ts">
   import { longDate } from "../game/date";
 
   let { date, inert = false, onopen }: { date: string; inert?: boolean; onopen: (panel: Panel) => void } = $props();
+
+  let menuOpen = $state(false);
+  let more: HTMLElement;
+  let moreButton: HTMLButtonElement;
+
+  function choose(panel: Panel) {
+    menuOpen = false;
+    onopen(panel);
+  }
+
+  function keydown(event: KeyboardEvent) {
+    if (menuOpen && event.key === "Escape") {
+      event.preventDefault();
+      menuOpen = false;
+      moreButton.focus();
+    }
+  }
+
+  function pointerdown(event: PointerEvent) {
+    if (menuOpen && !more.contains(event.target as Node)) menuOpen = false;
+  }
 </script>
+
+<svelte:window onkeydown={keydown} onpointerdown={pointerdown} />
 
 <header class="toolbar" {inert}>
   <div class="title">
@@ -14,36 +37,37 @@ export type Panel = "yesterday" | "hints" | "help";
     <span class="date">{longDate(date)}</span>
   </div>
   <nav aria-label="Game">
-    <button type="button" onclick={() => onopen("yesterday")}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"
-        ><rect x="4" y="5" width="16" height="15" rx="1" /><path d="M4 10h16M8 3v4M16 3v4" /></svg
-      >
-      <span class="label">Yesterday's Answers</span>
+    <button type="button" class="tool" onclick={() => onopen("yesterday")}>
+      <span class="short">Yesterday</span><span class="long">Yesterday’s Answers</span>
     </button>
-    <button type="button" onclick={() => onopen("hints")}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"
-        ><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" /></svg
+    <button type="button" class="tool" onclick={() => onopen("hints")}>Hints</button>
+    <div class="more" bind:this={more}>
+      <button
+        type="button"
+        class="tool"
+        aria-expanded={menuOpen}
+        aria-controls="more-menu"
+        bind:this={moreButton}
+        onclick={() => (menuOpen = !menuOpen)}
       >
-      <span class="label">Hints</span>
-    </button>
-    <button type="button" onclick={() => onopen("help")}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"
-        ><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7" /><circle
-          cx="12"
-          cy="17"
-          r="0.6"
-        /></svg
-      >
-      <span class="label">How to Play</span>
-    </button>
+        More<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" /></svg>
+      </button>
+      <ul id="more-menu" class="menu" hidden={!menuOpen}>
+        <li><button type="button" onclick={() => choose("help")}>How to Play</button></li>
+        <li><button type="button" onclick={() => choose("rankings")}>Rankings</button></li>
+      </ul>
+    </div>
   </nav>
 </header>
 
 <style>
   .toolbar {
+    position: relative;
+    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-2);
     height: var(--toolbar);
     padding: 0 var(--space-4);
     border-bottom: 1px solid var(--rule);
@@ -71,37 +95,91 @@ export type Panel = "yesterday" | "hints" | "help";
 
   nav {
     display: flex;
-    gap: var(--space-2);
+    align-items: center;
   }
 
   button {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    min-width: 44px;
-    height: 44px;
-    padding: 0 var(--space-2);
     border: 0;
     background: none;
-    font-size: var(--text-sm);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  button:hover .label {
-    text-decoration: underline;
+  .tool {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 var(--space-3);
+    font-size: var(--text-md);
+    font-weight: 500;
+    white-space: nowrap;
   }
 
-  svg {
-    width: 22px;
-    height: 22px;
+
+  .short {
+    display: none;
+  }
+
+  .tool svg {
+    width: 12px;
+    height: 12px;
+    margin-left: 3px;
     fill: none;
     stroke: var(--ink);
-    stroke-width: 1.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    stroke-width: 1.5;
+    transition: transform 0.25s;
+  }
+
+  .tool[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  .more {
+    position: relative;
+  }
+
+  .menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 160px;
+    padding: var(--space-1) 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-modal);
+    background: var(--bg);
+    box-shadow: var(--shadow);
+  }
+
+  .menu[hidden] {
+    display: none;
+  }
+
+  .menu button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    font-size: var(--text-md);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  @media (hover: hover) {
+    .tool:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .menu button:hover {
+      background: var(--pressed);
+    }
   }
 
   @media (max-width: 767px) {
+    .toolbar {
+      padding: 0 var(--space-2) 0 var(--space-4);
+    }
+
     .title {
       flex-direction: column;
       gap: 2px;
@@ -115,18 +193,17 @@ export type Panel = "yesterday" | "hints" | "help";
       font-size: var(--text-sm);
     }
 
-    .label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+    .short {
+      display: inline;
     }
 
-    button {
-      justify-content: center;
-      padding: 0;
+    .long {
+      display: none;
+    }
+
+    .tool {
+      padding: 0 var(--space-2);
+      font-size: var(--text-sm);
     }
   }
 </style>
