@@ -50,7 +50,7 @@ test("splash leads to the hive", async ({ page }) => {
   const letters = await play(page);
   expect(letters).toHaveLength(7);
   expect(new Set(letters).size).toBe(7);
-  await expect(page.getByRole("heading", { name: "Beginner" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Rank: Beginner/ })).toBeVisible();
 });
 
 test("typing, deleting and bad words", async ({ page }) => {
@@ -118,4 +118,27 @@ test("toolbar panels open and close", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Rankings" })).toBeVisible();
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("Enter opens a focused toolbar button, and typing hands Enter back to the game", async ({ page }) => {
+  const letters = await play(page);
+  await page.getByRole("button", { name: "Hints" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Hints" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Focus is back on Hints. Typing a word and pressing Enter must submit it, not reopen Hints.
+  await page.keyboard.type(`${letters[1]}${letters[2]}`);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Too short")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("a long word stays inside the page on a narrow phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  const letters = await play(page);
+  await page.keyboard.type((letters[3] ?? "").repeat(20));
+  const width = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(width).toBeLessThanOrEqual(320);
 });

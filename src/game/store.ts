@@ -11,6 +11,15 @@ const key = (date: string) => `spellagon:${date}`;
 
 export const emptyProgress = (): Progress => ({ found: [], genius: false, queen: false });
 
+/** Combines two copies of the same puzzle's progress, keeping every word either one found, in order. */
+export function mergeProgress(a: Progress, b: Progress): Progress {
+  return {
+    found: [...new Set([...a.found, ...b.found])],
+    genius: a.genius || b.genius,
+    queen: a.queen || b.queen,
+  };
+}
+
 export function loadProgress(date: string, storage: Storage | undefined = globalThis.localStorage): Progress {
   try {
     const raw = storage?.getItem(key(date));

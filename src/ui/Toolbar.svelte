@@ -5,10 +5,10 @@ export type Panel = "yesterday" | "hints" | "help";
 <script lang="ts">
   import { longDate } from "../game/date";
 
-  let { date, onopen }: { date: string; onopen: (panel: Panel) => void } = $props();
+  let { date, inert = false, onopen }: { date: string; inert?: boolean; onopen: (panel: Panel) => void } = $props();
 </script>
 
-<header class="toolbar">
+<header class="toolbar" {inert}>
   <div class="title">
     <h1>Spellagon</h1>
     <span class="date">{longDate(date)}</span>

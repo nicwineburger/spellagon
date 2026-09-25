@@ -1,5 +1,6 @@
 # Cloudflare Pages response headers.
-# The app makes no network calls, so connect-src is closed. The chart library writes inline styles, so styles allow them.
+# Used once the site moves to Cloudflare Pages. GitHub Pages ignores this file and relies on the CSP meta tag.
+# The app makes no network calls, so connect-src is closed. Svelte style directives write inline styles, so styles allow them.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer

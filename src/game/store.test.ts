@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyProgress, loadProgress, saveProgress } from "./store";
+import { emptyProgress, loadProgress, mergeProgress, saveProgress } from "./store";
 
 function memoryStorage(): Storage {
   const data = new Map<string, string>();
@@ -29,5 +29,16 @@ describe("progress", () => {
     expect(loadProgress("2026-09-25", storage)).toEqual(emptyProgress());
     storage.setItem("spellagon:2026-09-25", JSON.stringify({ found: ["abed", 3] }));
     expect(loadProgress("2026-09-25", storage).found).toEqual(["abed"]);
+  });
+});
+
+describe("mergeProgress", () => {
+  it("keeps words from both copies and any notice either showed", () => {
+    expect(
+      mergeProgress(
+        { found: ["adorn"], genius: false, queen: false },
+        { found: ["adorn", "ardor"], genius: true, queen: false },
+      ),
+    ).toEqual({ found: ["adorn", "ardor"], genius: true, queen: false });
   });
 });

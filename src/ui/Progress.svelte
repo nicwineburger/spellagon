@@ -12,7 +12,7 @@ const fill = $derived((reached / (steps.length - 1)) * 100);
 </script>
 
 <button type="button" class="progress" onclick={onopen} aria-label={`Rank: ${name}, ${points} points. See rankings.`}>
-  <h2 class="rank">{name}</h2>
+  <span class="rank">{name}</span>
   <div class="bar">
     <div class="line"><div class="filled" style:width="{fill}%"></div></div>
     <div class="dots">
@@ -46,6 +46,7 @@ const fill = $derived((reached / (steps.length - 1)) * 100);
   }
 
   .rank {
+    display: block;
     min-width: 6.5em;
     padding-right: var(--space-3);
     font-size: var(--text-md);

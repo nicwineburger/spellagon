@@ -1,4 +1,6 @@
 <script lang="ts">
+import { untrack } from "svelte";
+
 let {
   center,
   outer,
@@ -32,7 +34,8 @@ function press(index: number) {
 
 $effect(() => {
   if (!pressed) return;
-  const index = letters.indexOf(pressed.letter);
+  // Only a new key press should press a cell, not a shuffle that reorders the letters.
+  const index = untrack(() => letters.indexOf(pressed.letter));
   if (index >= 0) press(index);
 });
 
