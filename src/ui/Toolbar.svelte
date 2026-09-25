@@ -5,7 +5,12 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
 <script lang="ts">
   import { longDate } from "../game/date";
 
-  let { date, inert = false, onopen }: { date: string; inert?: boolean; onopen: (panel: Panel) => void } = $props();
+  let {
+    date,
+    inert = false,
+    onback,
+    onopen,
+  }: { date: string; inert?: boolean; onback: () => void; onopen: (panel: Panel) => void } = $props();
 
   let menuOpen = $state(false);
   let more: HTMLElement;
@@ -47,6 +52,9 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
 <svelte:window onkeydown={keydown} onpointerdown={pointerdown} />
 
 <header class="toolbar" {inert}>
+  <button type="button" class="back" aria-label="Back" onclick={onback}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5L7.5 12l7.5 7.5" /></svg>
+  </button>
   <div class="title">
     <h1>Spellagon</h1>
     <span class="date">{longDate(date)}</span>
@@ -65,7 +73,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
         bind:this={moreButton}
         onclick={() => (menuOpen = !menuOpen)}
       >
-        More<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" /></svg>
+        More<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 4h9L6 9z" /></svg>
       </button>
       <ul id="more-menu" class="menu" hidden={!menuOpen}>
         <li><button type="button" onclick={() => choose("help")}>How to Play</button></li>
@@ -88,7 +96,29 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
     border-bottom: 1px solid var(--rule);
   }
 
+  .back {
+    display: flex;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin-left: -10px;
+    padding: 0;
+  }
+
+  .back svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   .title {
+    flex: 1;
     display: flex;
     align-items: baseline;
     gap: var(--space-3);
@@ -138,10 +168,8 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
   .tool svg {
     width: 12px;
     height: 12px;
-    margin-left: 3px;
-    fill: none;
-    stroke: var(--ink);
-    stroke-width: 1.5;
+    margin-left: 6px;
+    fill: var(--ink);
     transition: transform 0.25s;
   }
 
@@ -192,20 +220,21 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
 
   @media (max-width: 767px) {
     .toolbar {
-      padding: 0 var(--space-2) 0 var(--space-4);
+      padding: 0 var(--space-2) 0 var(--space-3);
     }
 
+    /* Phones show only the back arrow on the left, as the original does. The name stays for screen readers. */
     .title {
-      flex-direction: column;
-      gap: 2px;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
-    h1 {
-      font-size: 1.375rem;
-    }
-
-    .date {
-      font-size: var(--text-sm);
+    nav {
+      margin-left: auto;
     }
 
     .short {
@@ -222,17 +251,4 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
     }
   }
 
-  @media (max-width: 359px) {
-    .toolbar {
-      padding-left: var(--space-3);
-    }
-
-    .date {
-      font-size: var(--text-xs);
-    }
-
-    .tool {
-      padding: 0 6px;
-    }
-  }
 </style>

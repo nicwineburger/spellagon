@@ -263,7 +263,7 @@ const chars = $derived(
 {#if !playing}
   <Splash {date} count={progress.found.length} onplay={() => (playing = true)} />
 {:else}
-  <Toolbar inert={modal !== null} {date} onopen={(panel) => (modal = panel)} />
+  <Toolbar inert={modal !== null} {date} onback={() => (playing = false)} onopen={(panel) => (modal = panel)} />
   <main class="game" class:wide inert={modal !== null}>
     <section class="status">
       <ProgressBar {ranks} {points} onopen={() => (modal = "rankings")} />
@@ -309,7 +309,9 @@ const chars = $derived(
             onclick={shuffle}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"
-              ><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9" /><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2" /></svg
+              ><path d="M4.2 10A8 8 0 0 1 18.4 6.6M19.8 14A8 8 0 0 1 5.6 17.4" /><path
+                d="M18.9 2.9l-.4 3.8-3.8-.4M5.1 21.1l.4-3.8 3.8.4"
+              /></svg
             >
           </button>
           <button
@@ -513,6 +515,7 @@ const chars = $derived(
 
   .actions .pill {
     margin: 0 8px;
+    font-size: 1.0625rem;
   }
 
   .round {
@@ -523,11 +526,11 @@ const chars = $derived(
   }
 
   .round svg {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     fill: none;
     stroke: var(--ink);
-    stroke-width: 1.8;
+    stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
