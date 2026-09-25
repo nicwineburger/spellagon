@@ -1,7 +1,7 @@
 // Fetches the original's daily puzzles into public/puzzles/YYYY-MM.json, one entry per day:
 // "<center><six outer letters> <answer> <answer> ...". Only missing days are fetched, oldest first,
 // through today's puzzle date (3 a.m. Eastern). Run by the daily `puzzles` workflow; safe to rerun.
-// Usage: node scripts/fetch-nyt.mjs [--from YYYY-MM-DD] [--max N]
+// Usage: node scripts/fetch-nyt.mjs [--days N | --from YYYY-MM-DD] [--max N]
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const FIRST = "2018-05-09";
@@ -86,13 +86,43 @@ for (const file of readdirSync(DIR).filter((f) => /^\d{4}-\d{2}\.json$/.test(f))
 const have = (date) => Boolean(months.get(date.slice(0, 7))?.[date]);
 
 const last = puzzleDate();
+// --days N limits a run to the last N days, as the scheduled runs do. A manual run with no flags backfills
+// everything. Today comes first, the one day that matters most, then the rest oldest first.
+const days = arg("--days");
+const from = arg("--from") ?? (days ? addDays(last, -Number(days)) : FIRST);
 const wanted = [];
-for (let date = arg("--from") ?? FIRST; date <= last; date = addDays(date, 1)) if (!have(date)) wanted.push(date);
+for (let date = from; date < last; date = addDays(date, 1)) if (!have(date)) wanted.push(date);
+if (!have(last)) wanted.unshift(last);
 
 let added = 0;
 const problems = [];
 const changed = new Set();
-for (const date of wanted.slice(0, max)) {
+
+/** Writes every changed month and the index, so a run cut short keeps what it fetched. */
+function save() {
+  for (const month of changed) {
+    const entries = months.get(month);
+    const sorted = Object.fromEntries(
+      Object.keys(entries)
+        .sort()
+        .map((d) => [d, entries[d]]),
+    );
+    writeFileSync(new URL(`${month}.json`, DIR), `${JSON.stringify(sorted).replaceAll('","', '",\n"')}\n`);
+  }
+  changed.clear();
+  // The index lists the months that have a file, so the site never asks for one that does not exist.
+  const listed = [...months.keys()].filter((m) => Object.keys(months.get(m) ?? {}).length > 0).sort();
+  writeFileSync(new URL("index.json", DIR), `${JSON.stringify({ months: listed })}\n`);
+}
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    save();
+    console.log(`Stopped by ${signal} after adding ${added} days. Saved what arrived.`);
+    process.exit(1);
+  });
+}
+
+for (const [i, date] of wanted.slice(0, max).entries()) {
   const result = await fetchDay(date);
   if (result.entry) {
     const month = date.slice(0, 7);
@@ -102,24 +132,12 @@ for (const date of wanted.slice(0, max)) {
   } else {
     problems.push(`${date}: ${result.missing ? "not published" : result.error}`);
   }
+  if (i % 50 === 49) save();
   await sleep(PAUSE_MS);
 }
+save();
 
-for (const month of changed) {
-  const days = months.get(month);
-  const sorted = Object.fromEntries(
-    Object.keys(days)
-      .sort()
-      .map((d) => [d, days[d]]),
-  );
-  writeFileSync(new URL(`${month}.json`, DIR), `${JSON.stringify(sorted, null, 0).replaceAll('","', '",\n"')}\n`);
-}
-
-// The index lists the months that have a file, so the site never asks for one that does not exist.
-const listed = [...months.keys()].filter((m) => Object.keys(months.get(m) ?? {}).length > 0).sort();
-writeFileSync(new URL("index.json", DIR), `${JSON.stringify({ months: listed })}\n`);
-
-console.log(`Added ${added} of ${Math.min(wanted.length, max)} missing days, through ${last}.`);
+console.log(`Added ${added} of ${Math.min(wanted.length, max)} missing days from ${from} through ${last}.`);
 if (problems.length > 0) console.log(`Skipped:\n  ${problems.join("\n  ")}`);
 // Today's puzzle missing is worth a failed run, so someone looks. Older gaps are only reported.
 if (!have(last)) {

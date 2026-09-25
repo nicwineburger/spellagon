@@ -22,7 +22,8 @@ Work is tracked in `docs/roadmap.md`. Pick tasks from it and update it in the sa
 
 ## Rules
 - Nothing the player owns may leave their browser. No backend, no analytics, no third-party requests.
-- Never change a past day's puzzle. `puzzles.txt` and `archive.txt` only grow at the end.
+- Never change a past day's puzzle. `puzzles.txt` and `archive.txt` only grow at the end. The one exception:
+  the original's puzzle replaces ours for a day once fetched, and ours keeps its saved progress apart.
 - `public/puzzles/` holds the original's puzzles, written only by `scripts/fetch-nyt.mjs`. Never edit it by hand.
 - Never use NYT names, logos, bylines or proprietary fonts. The game plays like the Bee; it is not the Bee.
 - TypeScript only, strict mode. Prefer plain functions and small modules over new dependencies.

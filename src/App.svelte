@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import { puzzleDate } from "./game/date";
+import { easternHour, puzzleDate } from "./game/date";
 import { addDays, FIRST_DATE, hasPuzzle, judge, MAX_LENGTH, praise, rankFor, ranksFor, score } from "./game/puzzle";
 import { awaitingToday, ensure, puzzleOn, refetch } from "./game/source.svelte";
 import { emptyProgress, loadProgress, mergeProgress, type Progress, saveProgress, storageKey } from "./game/store";
@@ -36,7 +36,10 @@ let progress = $state<Progress>(emptyProgress());
 /** False until the day's puzzle data has loaded, so Play never opens a stand-in that is about to change. */
 let ready = $state(false);
 /** Today's puzzle from the original is not in yet, in the minutes after 3 a.m. Eastern. */
-const waiting = $derived(awaitingToday(date, today));
+const WAIT_UNTIL_HOUR = 9;
+// After 9 a.m. Eastern the wait ends: if the day's fetch failed, the stand-in beats a blocked game.
+let clock = $state(Date.now());
+const waiting = $derived(awaitingToday(date, today) && easternHour(new Date(clock)) < WAIT_UNTIL_HOUR);
 const points = $derived(progress.found.reduce((sum, word) => sum + score(word), 0));
 const ranks = $derived(ranksFor(puzzle.maxScore));
 const rank = $derived(rankFor(points, puzzle.maxScore));
@@ -160,7 +163,7 @@ function openNotice(kind: "genius" | "queen") {
 /** Shows the game, and any rank notice that was waiting for it. */
 function play() {
   if (!ready || waiting) return;
-  view = "game";
+  leave("game");
   if (pendingNotice && !modal) {
     const kind = pendingNotice;
     pendingNotice = null;
@@ -227,9 +230,21 @@ function releaseDelete() {
   clearTimeout(repeatTimer);
 }
 
-/** Switches to another day's puzzle once its data has loaded. Progress and letters follow the puzzle. */
-async function openDate(next: string) {
+/** Bumped by every move between days and screens, so a slow load that was overtaken does nothing. */
+let openSeq = 0;
+const leave = (next: typeof view) => {
+  openSeq += 1;
+  view = next;
+};
+
+/**
+ * Switches to another day's puzzle once its data has loaded. Progress and letters follow the puzzle.
+ * Returns false when the player moved on before the data arrived.
+ */
+async function openDate(next: string): Promise<boolean> {
+  const seq = ++openSeq;
   await ensure(next, addDays(next, -1));
+  if (seq !== openSeq) return false;
   clearTimeout(noticeTimer);
   clearTimeout(messageTimer);
   settle();
@@ -240,6 +255,7 @@ async function openDate(next: string) {
   listOpen = false;
   modal = null;
   syncHash();
+  return true;
 }
 
 /** Keeps the address in step with the puzzle: no hash for today, #YYYY-MM-DD for a past day. */
@@ -250,24 +266,30 @@ function syncHash() {
 
 /** At 3 a.m. Eastern a player on today's puzzle moves on to the new one. A past puzzle stays put. */
 function refresh() {
+  clock = Date.now();
   const now = puzzleDate();
   if (now !== today) {
     const wasToday = date === today;
     today = now;
     if (wasToday) {
-      openDate(now);
+      // The new day's puzzle may not be deployed yet. Wait on the splash rather than play a stand-in.
+      void openDate(now).then((moved) => {
+        if (moved && awaitingToday(now, today)) view = "splash";
+      });
       return;
     }
   }
   // Just after 3 a.m. the day's file may not be deployed yet. Ask again, past the browser cache.
   if (awaitingToday(date, today)) void refetch(date);
+  // A month that failed to load, say offline, is tried again.
+  void ensure(date, addDays(date, -1));
   progress = mergeProgress(progress, loadProgress(puzzle.id));
 }
 
 function hashchange() {
   const next = dateFromHash(today);
   if (next !== date) {
-    openDate(next);
+    void openDate(next);
     view = "splash";
   } else {
     syncHash();
@@ -275,13 +297,13 @@ function hashchange() {
 }
 
 async function pick(next: string) {
-  if (next !== date) await openDate(next);
-  if (awaitingToday(next, today)) view = "splash";
+  if (next !== date && !(await openDate(next))) return;
+  if (waiting) view = "splash";
   else play();
 }
 
 function openPanel(panel: Panel) {
-  if (panel === "archive") view = "archive";
+  if (panel === "archive") leave("archive");
   else modal = panel;
 }
 
@@ -295,10 +317,20 @@ let shownId = "";
 $effect(() => {
   const current = puzzle;
   if (current.id === shownId) return;
+  // A notice earned on the stand-in belongs to it, not to the puzzle that replaced it.
+  if (shownId) {
+    clearTimeout(noticeTimer);
+    pendingNotice = null;
+  }
   shownId = current.id;
   progress = loadProgress(current.id);
   outer = [...current.outer];
   lastFound = null;
+});
+
+// Never leave a player in a game while today's puzzle is still on its way.
+$effect(() => {
+  if (waiting && view === "game") view = "splash";
 });
 
 onMount(() => {
@@ -350,16 +382,16 @@ const chars = $derived(
     {waiting}
     count={progress.found.length}
     onplay={play}
-    onarchive={() => (view = "archive")}
+    onarchive={() => leave("archive")}
   />
 {:else if view === "archive"}
-  <Archive {today} current={date} onpick={pick} onback={() => (view = "splash")} />
+  <Archive {today} current={date} onpick={pick} onback={() => leave("splash")} />
 {:else}
   <Toolbar
     inert={modal !== null}
     {date}
     past={date !== today}
-    onback={() => (view = date === today ? "splash" : "archive")}
+    onback={() => leave(date === today ? "splash" : "archive")}
     onopen={openPanel}
   />
   <main class="game" class:wide inert={modal !== null}>

@@ -19,6 +19,12 @@ export function puzzleDate(now: Date = new Date()): string {
   return Number(parts.hour) < RELEASE_HOUR ? addDays(today, -1) : today;
 }
 
+/** The hour on the Eastern clock, 0 to 23. */
+export function easternHour(now: Date = new Date()): number {
+  const hour = eastern.formatToParts(now).find((part) => part.type === "hour")?.value;
+  return Number(hour ?? 0);
+}
+
 const long = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" });
 
 /** "September 25, 2026". */

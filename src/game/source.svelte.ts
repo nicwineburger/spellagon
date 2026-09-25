@@ -19,14 +19,17 @@ export const loaded = $state({ version: 0 });
 const monthOf = (date: string) => date.slice(0, 7);
 const base = () => `${import.meta.env.BASE_URL}puzzles/`;
 
-function getJson<T>(url: string, fresh: boolean): Promise<T | null> {
+/** The parsed file, `null` when the site answered without one, or `undefined` when the network failed. */
+function getJson<T>(url: string, fresh: boolean): Promise<T | null | undefined> {
   return fetch(url, fresh ? { cache: "no-cache" } : undefined)
-    .then((response) => (response.ok ? (response.json() as Promise<T>) : null))
-    .catch(() => null);
+    .then((response) => (response.ok ? (response.json() as Promise<T>).catch(() => null) : null))
+    .catch(() => undefined);
 }
 
 function loadIndex(fresh = false): Promise<void> {
   indexJob = getJson<{ months?: unknown }>(`${base()}index.json`, fresh).then((data) => {
+    // Offline: forget the attempt so the next call tries again.
+    if (data === undefined) indexJob = null;
     const list = Array.isArray(data?.months) ? data.months.filter((m): m is string => typeof m === "string") : [];
     months = new Set(list);
   });
@@ -36,6 +39,8 @@ function loadIndex(fresh = false): Promise<void> {
 function fetchMonth(month: string, fresh = false): Promise<void> {
   const job = (months.has(month) ? getJson<Month>(`${base()}${month}.json`, fresh) : Promise.resolve(null))
     .then((data) => {
+      // Offline: leave the month unloaded so the next call tries again. A missing file is remembered.
+      if (data === undefined) return;
       loadedMonths.set(month, data && typeof data === "object" ? data : null);
       for (const key of built.keys()) if (key.startsWith(month)) built.delete(key);
       loaded.version += 1;

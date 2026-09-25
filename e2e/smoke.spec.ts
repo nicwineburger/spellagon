@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { test as base, expect, type Page } from "@playwright/test";
 
 // Every test fails on a page error, a console error, or a request to another origin.
@@ -17,6 +17,9 @@ const test = base.extend<{ guard: undefined }>({
           problems.push(`request to another origin: ${request.url()}`);
         }
       });
+      // The shipped puzzle files change every day. Tests play our own puzzles, so they never depend on the date's
+      // data being deployed. A test that needs the original's puzzles serves made-up ones with servePuzzles.
+      await page.route("**/puzzles/index.json", (route) => route.fulfill({ json: { months: [] } }));
       await use(undefined);
       expect(problems).toEqual([]);
     },
@@ -37,21 +40,8 @@ const dictionary = readFileSync(new URL("../src/game/words.txt", import.meta.url
   .trim()
   .split("\n");
 
-/** The original's puzzles the site ships in public/puzzles, keyed by center letter then the rest sorted. */
-const shipped = new Map<string, string[]>();
-const puzzleDir = new URL("../public/puzzles/", import.meta.url);
-for (const file of existsSync(puzzleDir) ? readdirSync(puzzleDir) : []) {
-  if (!/^\d{4}-\d{2}\.json$/.test(file)) continue;
-  const days = JSON.parse(readFileSync(new URL(file, puzzleDir), "utf8")) as Record<string, string>;
-  for (const entry of Object.values(days)) {
-    const [letters = "", ...answers] = entry.split(" ");
-    shipped.set(letters[0] + [...letters.slice(1)].sort().join(""), answers);
-  }
-}
-
-/** The answers for the letters on screen: the original's list when the site ships it, else our word list. */
+/** The answers for the letters on screen, from our word list. Tests run on our puzzles unless they serve others. */
 const answersFor = (letters: string[]) =>
-  shipped.get((letters[0] ?? "") + [...letters.slice(1)].sort().join("")) ??
   dictionary.filter((w) => w.includes(letters[0] ?? "") && [...w].every((c) => letters.includes(c)));
 
 const input = (page: Page) => page.getByRole("textbox", { name: "Your word" });
@@ -389,9 +379,35 @@ test("the original's puzzle takes over a day when the site has it", async ({ pag
 
 test("just after 3 a.m. the splash waits for today's puzzle instead of showing a stand-in", async ({ page }) => {
   const today = puzzleDateEastern();
+  // 08:30 UTC is between 3 and 9 a.m. Eastern in daylight and standard time alike.
+  await page.clock.install({ time: new Date(`${today}T08:30:00Z`) });
   await servePuzzles(page, { [dayBefore(today)]: "abcdefg fbcdegab abed" });
   await page.goto("/");
   await expect(page.getByText("Today’s puzzle is on its way. Check back in a few minutes.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Play" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Past Puzzles" })).toBeVisible();
+});
+
+test("after 9 a.m. a missing puzzle stops the wait and our own puzzle plays", async ({ page }) => {
+  const today = puzzleDateEastern();
+  await page.clock.install({ time: new Date(`${today}T15:00:00Z`) });
+  await servePuzzles(page, { [dayBefore(today)]: "abcdefg fbcdegab abed" });
+  const letters = await play(page);
+  expect(letters).toHaveLength(7);
+  expect([...letters].sort().join("")).not.toBe("abcdefg");
+});
+
+test("at 3 a.m. mid-game, a player waits on the splash instead of getting a stand-in", async ({ page }) => {
+  // 2:59 a.m. EDT on September 24, 2026: the puzzle date is still the 23rd.
+  await page.clock.install({ time: new Date("2026-09-24T06:59:00Z") });
+  await servePuzzles(page, {
+    "2026-09-22": "abcdefg fbcdegab abed",
+    "2026-09-23": "hijklmn hijklmnh hijk",
+  });
+  const letters = await play(page);
+  expect(letters[0]).toBe("h");
+  // Two minutes on, the day turns over, and the 24th has not been fetched yet.
+  await page.clock.runFor(120_000);
+  await expect(page.getByText("Today’s puzzle is on its way. Check back in a few minutes.")).toBeVisible();
+  await expect(page.locator(".hive")).toHaveCount(0);
 });
