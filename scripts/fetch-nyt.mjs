@@ -1,0 +1,128 @@
+// Fetches the original's daily puzzles into public/puzzles/YYYY-MM.json, one entry per day:
+// "<center><six outer letters> <answer> <answer> ...". Only missing days are fetched, oldest first,
+// through today's puzzle date (3 a.m. Eastern). Run by the daily `puzzles` workflow; safe to rerun.
+// Usage: node scripts/fetch-nyt.mjs [--from YYYY-MM-DD] [--max N]
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+
+const FIRST = "2018-05-09";
+const DIR = process.env.PUZZLES_DIR
+  ? new URL(`file://${process.env.PUZZLES_DIR.replace(/\/?$/, "/")}`)
+  : new URL("../public/puzzles/", import.meta.url);
+// PUZZLES_ENDPOINT points the script at a test server, with {date} standing for the day.
+const ENDPOINT = (date) =>
+  (process.env.PUZZLES_ENDPOINT ?? "https://www.nytimes.com/svc/spelling-bee/v1/{date}.json").replace("{date}", date);
+const PAUSE_MS = 600;
+
+const args = process.argv.slice(2);
+const arg = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const max = Number(arg("--max") ?? Number.POSITIVE_INFINITY);
+
+/** Today's puzzle date: the Eastern calendar day, turning over at 3 a.m. */
+function puzzleDate(now = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  return Number(parts.hour) < 3 ? addDays(today, -1) : today;
+}
+const addDays = (date, days) =>
+  new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Turns one response into an entry, or explains why it cannot. */
+function toEntry(data) {
+  const center = data?.center_letter;
+  const outer = data?.outer_letters;
+  const answers = data?.answers;
+  if (typeof center !== "string" || !/^[a-z]$/.test(center)) return { error: "bad center letter" };
+  if (typeof outer !== "string" || !/^[a-z]{6}$/.test(outer)) return { error: "bad outer letters" };
+  const letters = center + outer;
+  if (new Set(letters).size !== 7) return { error: "repeated letters" };
+  if (!Array.isArray(answers) || answers.length === 0) return { error: "no answers" };
+  const words = answers.map((w) => String(w).toLowerCase());
+  const allowed = new Set(letters);
+  if (!words.every((w) => /^[a-z]{4,}$/.test(w) && w.includes(center) && [...w].every((c) => allowed.has(c)))) {
+    return { error: "an answer breaks the rules" };
+  }
+  if (!words.some((w) => new Set(w).size === 7)) return { error: "no pangram" };
+  return { entry: [letters, ...words].join(" ") };
+}
+
+async function fetchDay(date) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(ENDPOINT(date), {
+        headers: { accept: "application/json", "user-agent": "spellagon-puzzles (github.com/nicwineburger/spellagon)" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (response.status === 404) return { missing: true };
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return toEntry(await response.json());
+    } catch (error) {
+      if (attempt === 3) return { error: String(error) };
+      await sleep(attempt * 5_000);
+    }
+  }
+  return { error: "unreachable" };
+}
+
+mkdirSync(DIR, { recursive: true });
+const months = new Map();
+for (const file of readdirSync(DIR).filter((f) => /^\d{4}-\d{2}\.json$/.test(f))) {
+  months.set(file.slice(0, 7), JSON.parse(readFileSync(new URL(file, DIR), "utf8")));
+}
+const have = (date) => Boolean(months.get(date.slice(0, 7))?.[date]);
+
+const last = puzzleDate();
+const wanted = [];
+for (let date = arg("--from") ?? FIRST; date <= last; date = addDays(date, 1)) if (!have(date)) wanted.push(date);
+
+let added = 0;
+const problems = [];
+const changed = new Set();
+for (const date of wanted.slice(0, max)) {
+  const result = await fetchDay(date);
+  if (result.entry) {
+    const month = date.slice(0, 7);
+    months.set(month, { ...(months.get(month) ?? {}), [date]: result.entry });
+    changed.add(month);
+    added += 1;
+  } else {
+    problems.push(`${date}: ${result.missing ? "not published" : result.error}`);
+  }
+  await sleep(PAUSE_MS);
+}
+
+for (const month of changed) {
+  const days = months.get(month);
+  const sorted = Object.fromEntries(
+    Object.keys(days)
+      .sort()
+      .map((d) => [d, days[d]]),
+  );
+  writeFileSync(new URL(`${month}.json`, DIR), `${JSON.stringify(sorted, null, 0).replaceAll('","', '",\n"')}\n`);
+}
+
+// The index lists the months that have a file, so the site never asks for one that does not exist.
+const listed = [...months.keys()].filter((m) => Object.keys(months.get(m) ?? {}).length > 0).sort();
+writeFileSync(new URL("index.json", DIR), `${JSON.stringify({ months: listed })}\n`);
+
+console.log(`Added ${added} of ${Math.min(wanted.length, max)} missing days, through ${last}.`);
+if (problems.length > 0) console.log(`Skipped:\n  ${problems.join("\n  ")}`);
+// Today's puzzle missing is worth a failed run, so someone looks. Older gaps are only reported.
+if (!have(last)) {
+  console.error(`Today's puzzle (${last}) is still missing.`);
+  process.exitCode = 1;
+}

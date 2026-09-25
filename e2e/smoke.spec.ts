@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { test as base, expect, type Page } from "@playwright/test";
 
 // Every test fails on a page error, a console error, or a request to another origin.
@@ -37,8 +37,21 @@ const dictionary = readFileSync(new URL("../src/game/words.txt", import.meta.url
   .trim()
   .split("\n");
 
-/** The answers for the letters on screen, worked out from the same word list the game ships. */
+/** The original's puzzles the site ships in public/puzzles, keyed by center letter then the rest sorted. */
+const shipped = new Map<string, string[]>();
+const puzzleDir = new URL("../public/puzzles/", import.meta.url);
+for (const file of existsSync(puzzleDir) ? readdirSync(puzzleDir) : []) {
+  if (!/^\d{4}-\d{2}\.json$/.test(file)) continue;
+  const days = JSON.parse(readFileSync(new URL(file, puzzleDir), "utf8")) as Record<string, string>;
+  for (const entry of Object.values(days)) {
+    const [letters = "", ...answers] = entry.split(" ");
+    shipped.set(letters[0] + [...letters.slice(1)].sort().join(""), answers);
+  }
+}
+
+/** The answers for the letters on screen: the original's list when the site ships it, else our word list. */
 const answersFor = (letters: string[]) =>
+  shipped.get((letters[0] ?? "") + [...letters.slice(1)].sort().join("")) ??
   dictionary.filter((w) => w.includes(letters[0] ?? "") && [...w].every((c) => letters.includes(c)));
 
 const input = (page: Page) => page.getByRole("textbox", { name: "Your word" });
@@ -320,4 +333,65 @@ test("the word bar shows every found word with an initial capital", async ({ pag
   // Checked in the page text itself, so it holds in every browser, not only where CSS capitalize behaves.
   const shown = await page.locator(".recent > span").allTextContents();
   expect(shown).toEqual(words.toReversed().map((w) => w.charAt(0).toUpperCase() + w.slice(1)));
+});
+
+/** Today's puzzle date, Eastern time turning over at 3 a.m., as the game works it out. */
+function puzzleDateEastern(): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date())
+      .map((p) => [p.type, p.value]),
+  );
+  const day = `${parts.year}-${parts.month}-${parts.day}`;
+  if (Number(parts.hour) >= 3) return day;
+  return new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+}
+const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+
+/** Serves made-up puzzle files in place of the shipped ones. Synthetic letters and words only. */
+async function servePuzzles(page: Page, days: Record<string, string>) {
+  const months = [...new Set(Object.keys(days).map((d) => d.slice(0, 7)))];
+  await page.route("**/puzzles/index.json", (route) => route.fulfill({ json: { months } }));
+  await page.route(/\/puzzles\/\d{4}-\d{2}\.json$/, (route) => {
+    const month =
+      route
+        .request()
+        .url()
+        .match(/(\d{4}-\d{2})\.json$/)?.[1] ?? "";
+    route.fulfill({ json: Object.fromEntries(Object.entries(days).filter(([d]) => d.startsWith(month))) });
+  });
+}
+
+test("the original's puzzle takes over a day when the site has it", async ({ page }) => {
+  const today = puzzleDateEastern();
+  await servePuzzles(page, {
+    [dayBefore(today)]: "abcdefg fbcdegab abed",
+    [today]: "abcdefg fbcdegab abed faced badge",
+  });
+  const letters = await play(page);
+  expect(letters[0]).toBe("a");
+  expect([...letters].sort().join("")).toBe("abcdefg");
+  await page.keyboard.type("abed");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".message .points")).toHaveText("+1");
+  // A real word that is not on the original's list is refused.
+  await page.keyboard.type("dace");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Not in word list")).toBeVisible();
+});
+
+test("just after 3 a.m. the splash waits for today's puzzle instead of showing a stand-in", async ({ page }) => {
+  const today = puzzleDateEastern();
+  await servePuzzles(page, { [dayBefore(today)]: "abcdefg fbcdegab abed" });
+  await page.goto("/");
+  await expect(page.getByText("Today’s puzzle is on its way. Check back in a few minutes.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Past Puzzles" })).toBeVisible();
 });

@@ -1,10 +1,10 @@
 # Cloudflare Pages response headers.
 # Used once the site moves to Cloudflare Pages. GitHub Pages ignores this file and relies on the CSP meta tag.
-# The app makes no network calls, so connect-src is closed. Svelte style directives write inline styles, so styles allow them.
+# The app fetches only its own puzzle files, so connect-src allows this site alone. Svelte style directives write inline styles, so styles allow them.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 
 # Vite fingerprints everything under /assets, so it can be cached for good.
 /assets/*

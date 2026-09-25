@@ -10,10 +10,12 @@ Work is tracked in `docs/roadmap.md`. Pick tasks from it and update it in the sa
 - `pnpm dev` starts the dev server. `pnpm test` runs tests only.
 - `pnpm test:e2e` runs the browser smoke test on the production build. Run it after UI changes.
   Set `PW_CHROMIUM` to a Chromium path to use a preinstalled browser.
+- `node scripts/fetch-nyt.mjs` fetches missing days of the original into `public/puzzles/`. The workflow runs it.
 - `pnpm words` rebuilds the word list, `puzzles.txt` and `archive.txt` in `src/game/` from SCOWL. Commit the outputs.
 
 ## Workflow
 - Never commit to `main`. Branch, open a PR, squash-merge. Pushes to `main` deploy to GitHub Pages once checks pass.
+  The one exception is the `puzzles` workflow, which commits `public/puzzles/` each day.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`. A hook and CI enforce it.
 - One logical change per PR. Keep diffs small. Add or update a test with every behavior change.
 - No tool or assistant attribution in commits, PRs, code or docs.
@@ -21,6 +23,7 @@ Work is tracked in `docs/roadmap.md`. Pick tasks from it and update it in the sa
 ## Rules
 - Nothing the player owns may leave their browser. No backend, no analytics, no third-party requests.
 - Never change a past day's puzzle. `puzzles.txt` and `archive.txt` only grow at the end.
+- `public/puzzles/` holds the original's puzzles, written only by `scripts/fetch-nyt.mjs`. Never edit it by hand.
 - Never use NYT names, logos, bylines or proprietary fonts. The game plays like the Bee; it is not the Bee.
 - TypeScript only, strict mode. Prefer plain functions and small modules over new dependencies.
 - Ask before adding a runtime dependency. Bundle size matters.

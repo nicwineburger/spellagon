@@ -11,6 +11,7 @@ import {
   type Puzzle,
   praise,
   puzzleFor,
+  puzzleFromEntry,
   rankFor,
   ranksFor,
   score,
@@ -19,6 +20,8 @@ import {
 
 const synthetic: Puzzle = {
   date: "2026-01-01",
+  source: "local",
+  id: "2026-01-01",
   center: "a",
   outer: ["b", "c", "d", "e", "f", "g"],
   answers: ["abed", "faced", "cabbage", "badge"],
@@ -167,5 +170,30 @@ describe("titleCase", () => {
   it("capitalizes only the first letter", () => {
     expect(titleCase("pangram")).toBe("Pangram");
     expect(titleCase("")).toBe("");
+  });
+});
+
+describe("puzzleFromEntry", () => {
+  it("reads the letters, center first, then the answers", () => {
+    const puzzle = puzzleFromEntry("2026-01-01", "abcdefg fbcdegab abed faced");
+    expect(puzzle).toMatchObject({
+      source: "nyt",
+      id: "2026-01-01/nyt",
+      center: "a",
+      outer: ["b", "c", "d", "e", "f", "g"],
+      answers: ["fbcdegab", "abed", "faced"],
+      pangrams: ["fbcdegab"],
+      maxScore: 15 + 1 + 5,
+    });
+  });
+
+  it("refuses a malformed entry", () => {
+    expect(puzzleFromEntry("2026-01-01", "abcdefa abed")).toBeNull();
+    expect(puzzleFromEntry("2026-01-01", "abcdefg")).toBeNull();
+    expect(puzzleFromEntry("2026-01-01", "abcdefg ab")).toBeNull();
+  });
+
+  it("keeps a local puzzle's progress key as its date", () => {
+    expect(puzzleFor("2026-09-25").id).toBe("2026-09-25");
   });
 });

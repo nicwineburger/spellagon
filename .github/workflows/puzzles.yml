@@ -1,0 +1,52 @@
+name: puzzles
+# Fetches the original's daily puzzles into public/puzzles/ and deploys them.
+# Runs at 3:10 a.m. Eastern: the 07:10 UTC run covers daylight time and the 08:10 UTC run covers standard time.
+# The other run of the day finds nothing new and stops. A manual run backfills every missing day.
+on:
+  schedule:
+    - cron: "10 7 * * *"
+    - cron: "10 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: puzzles
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # A failure here still commits whatever arrived, so one bad day never holds back the rest.
+      - name: Fetch missing puzzles
+        id: fetch
+        continue-on-error: true
+        run: node scripts/fetch-nyt.mjs
+      - name: Commit and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- public/puzzles)" ]; then
+            echo "No new puzzles."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/puzzles
+          git commit -m "chore(puzzles): add puzzles through $(ls public/puzzles | sort | tail -1 | cut -c1-7)"
+          git push
+          # A push made with this token starts no workflows, so start the checks and deploy by hand.
+          gh workflow run ci.yml --ref main
+      - name: Report a missing day
+        if: steps.fetch.outcome == 'failure'
+        run: |
+          echo "::error::Today's puzzle could not be fetched. See the fetch step."
+          exit 1

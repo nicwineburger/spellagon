@@ -5,6 +5,10 @@ import wordText from "./words.txt?raw";
 export interface Puzzle {
   /** Puzzle date as YYYY-MM-DD. */
   date: string;
+  /** Where the puzzle comes from: the original's daily data, or our own schedule. */
+  source: "nyt" | "local";
+  /** The storage key for progress. A day's local and original puzzles never share progress. */
+  id: string;
   center: string;
   /** The six outer letters, in their starting order. */
   outer: string[];
@@ -85,17 +89,34 @@ export function answersFor(letters: string, words: readonly string[] = dictionar
   return words.filter((word) => word.includes(center) && [...word].every((c) => allowed.has(c)));
 }
 
-export function puzzleFor(date: string): Puzzle {
-  const letters = lettersFor(date);
-  const answers = answersFor(letters);
+function build(date: string, source: Puzzle["source"], letters: string, answers: string[]): Puzzle {
   return {
     date,
+    source,
+    id: source === "nyt" ? `${date}/nyt` : date,
     center: letters[0] ?? "",
     outer: [...letters.slice(1)],
     answers,
     pangrams: answers.filter(isPangram),
     maxScore: answers.reduce((sum, word) => sum + score(word), 0),
   };
+}
+
+/** Our own puzzle for a date, from `puzzles.txt` or `archive.txt`. */
+export function puzzleFor(date: string): Puzzle {
+  const letters = lettersFor(date);
+  return build(date, "local", letters, answersFor(letters));
+}
+
+/**
+ * The original's puzzle for a date, from one entry of a `public/puzzles/YYYY-MM.json` file:
+ * the seven letters, center first, then the answers, all separated by spaces.
+ */
+export function puzzleFromEntry(date: string, entry: string): Puzzle | null {
+  const [letters = "", ...answers] = entry.trim().split(/\s+/);
+  if (!/^[a-z]{7}$/.test(letters) || new Set(letters).size !== 7 || answers.length === 0) return null;
+  if (!answers.every((word) => /^[a-z]{4,}$/.test(word))) return null;
+  return build(date, "nyt", letters, answers);
 }
 
 export function ranksFor(maxScore: number): Rank[] {

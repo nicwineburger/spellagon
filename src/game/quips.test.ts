@@ -4,6 +4,8 @@ import { finalRank } from "./quips";
 
 const puzzle: Puzzle = {
   date: "2026-09-01",
+  source: "local",
+  id: "2026-09-01",
   center: "a",
   outer: ["b", "c", "d", "e", "f", "g"],
   answers: ["abed", "badge", "cabbed", "fadeback"],

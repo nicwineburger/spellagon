@@ -1,19 +1,9 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { puzzleDate } from "./game/date";
-import {
-  addDays,
-  FIRST_DATE,
-  hasPuzzle,
-  judge,
-  MAX_LENGTH,
-  praise,
-  puzzleFor,
-  rankFor,
-  ranksFor,
-  score,
-} from "./game/puzzle";
-import { loadProgress, mergeProgress, type Progress, saveProgress } from "./game/store";
+import { addDays, FIRST_DATE, hasPuzzle, judge, MAX_LENGTH, praise, rankFor, ranksFor, score } from "./game/puzzle";
+import { awaitingToday, ensure, puzzleOn, refetch } from "./game/source.svelte";
+import { emptyProgress, loadProgress, mergeProgress, type Progress, saveProgress, storageKey } from "./game/store";
 import Archive from "./ui/Archive.svelte";
 import Hints from "./ui/Hints.svelte";
 import Hive from "./ui/Hive.svelte";
@@ -39,17 +29,21 @@ const startToday = puzzleDate();
 let today = $state(startToday);
 const startDate = dateFromHash(startToday);
 let date = $state(startDate);
-const puzzle = $derived(puzzleFor(date));
+const puzzle = $derived(puzzleOn(date));
 const yesterdayDate = $derived(addDays(date, -1));
-const yesterday = $derived(yesterdayDate < FIRST_DATE ? null : puzzleFor(yesterdayDate));
-let progress = $state<Progress>(loadProgress(startDate));
+const yesterday = $derived(yesterdayDate < FIRST_DATE ? null : puzzleOn(yesterdayDate));
+let progress = $state<Progress>(emptyProgress());
+/** False until the day's puzzle data has loaded, so Play never opens a stand-in that is about to change. */
+let ready = $state(false);
+/** Today's puzzle from the original is not in yet, in the minutes after 3 a.m. Eastern. */
+const waiting = $derived(awaitingToday(date, today));
 const points = $derived(progress.found.reduce((sum, word) => sum + score(word), 0));
 const ranks = $derived(ranksFor(puzzle.maxScore));
 const rank = $derived(rankFor(points, puzzle.maxScore));
 
 let view = $state<"splash" | "game" | "archive">("splash");
 const playing = $derived(view === "game");
-let outer = $state<string[]>(puzzleFor(startDate).outer);
+let outer = $state<string[]>([]);
 let input = $state("");
 let message = $state<Message | null>(null);
 let shaking = $state(false);
@@ -135,7 +129,7 @@ function submit() {
   input = "";
   const before = rank.name;
   // Another tab may have found words since this one loaded. Merge before saving so neither loses any.
-  progress = mergeProgress(loadProgress(date), {
+  progress = mergeProgress(loadProgress(puzzle.id), {
     ...$state.snapshot(progress),
     found: [...progress.found, verdict.word],
   });
@@ -144,7 +138,7 @@ function submit() {
   const after = rankFor(points, puzzle.maxScore).name;
   if (after !== before && after === "Queen Bee" && !progress.queen) notice("queen");
   else if (after !== before && after === "Genius" && !progress.genius) notice("genius");
-  saveProgress(date, $state.snapshot(progress));
+  saveProgress(puzzle.id, $state.snapshot(progress));
 }
 
 /** Shows a rank notice once the praise has had its moment, or after the open dialog closes. */
@@ -160,11 +154,12 @@ function notice(kind: "genius" | "queen") {
 function openNotice(kind: "genius" | "queen") {
   modal = kind;
   progress[kind] = true;
-  saveProgress(date, $state.snapshot(progress));
+  saveProgress(puzzle.id, $state.snapshot(progress));
 }
 
 /** Shows the game, and any rank notice that was waiting for it. */
 function play() {
+  if (!ready || waiting) return;
   view = "game";
   if (pendingNotice && !modal) {
     const kind = pendingNotice;
@@ -232,16 +227,14 @@ function releaseDelete() {
   clearTimeout(repeatTimer);
 }
 
-/** Switches to another day's puzzle, fresh from storage. */
-function openDate(next: string) {
+/** Switches to another day's puzzle once its data has loaded. Progress and letters follow the puzzle. */
+async function openDate(next: string) {
+  await ensure(next, addDays(next, -1));
   clearTimeout(noticeTimer);
   clearTimeout(messageTimer);
   settle();
   pendingNotice = null;
   date = next;
-  progress = loadProgress(next);
-  lastFound = null;
-  outer = puzzleFor(next).outer;
   input = "";
   message = null;
   listOpen = false;
@@ -266,7 +259,9 @@ function refresh() {
       return;
     }
   }
-  progress = mergeProgress(progress, loadProgress(date));
+  // Just after 3 a.m. the day's file may not be deployed yet. Ask again, past the browser cache.
+  if (awaitingToday(date, today)) void refetch(date);
+  progress = mergeProgress(progress, loadProgress(puzzle.id));
 }
 
 function hashchange() {
@@ -279,9 +274,10 @@ function hashchange() {
   }
 }
 
-function pick(next: string) {
-  if (next !== date) openDate(next);
-  play();
+async function pick(next: string) {
+  if (next !== date) await openDate(next);
+  if (awaitingToday(next, today)) view = "splash";
+  else play();
 }
 
 function openPanel(panel: Panel) {
@@ -291,10 +287,22 @@ function openPanel(panel: Panel) {
 
 /** Another tab saved progress for this puzzle. */
 function storage(event: StorageEvent) {
-  if (event.key === `spellagon:${date}`) progress = mergeProgress(progress, loadProgress(date));
+  if (event.key === storageKey(puzzle.id)) progress = mergeProgress(progress, loadProgress(puzzle.id));
 }
 
+/** Each puzzle brings its own progress and letter order. The original's data can replace a stand-in on load. */
+let shownId = "";
+$effect(() => {
+  const current = puzzle;
+  if (current.id === shownId) return;
+  shownId = current.id;
+  progress = loadProgress(current.id);
+  outer = [...current.outer];
+  lastFound = null;
+});
+
 onMount(() => {
+  void ensure(date, addDays(date, -1)).then(() => (ready = true));
   // A link to today, a future day or junk loses its hash, so the address names what is on screen.
   syncHash();
   const query = window.matchMedia("(min-width: 768px)");
@@ -336,7 +344,14 @@ const chars = $derived(
 <svelte:window onkeydown={keydown} onkeyup={keyup} onblur={() => (activeKey = null)} onpointerup={releaseDelete} />
 
 {#if view === "splash"}
-  <Splash {date} count={progress.found.length} onplay={play} onarchive={() => (view = "archive")} />
+  <Splash
+    {date}
+    {ready}
+    {waiting}
+    count={progress.found.length}
+    onplay={play}
+    onarchive={() => (view = "archive")}
+  />
 {:else if view === "archive"}
   <Archive {today} current={date} onpick={pick} onback={() => (view = "splash")} />
 {:else}
@@ -418,7 +433,7 @@ const chars = $derived(
   {:else if modal === "yesterday"}
     <Modal title="Yesterday’s Answers" onclose={closeModal}>
       {#if yesterday}
-        <Yesterday puzzle={yesterday} found={loadProgress(yesterday.date).found} />
+        <Yesterday puzzle={yesterday} found={loadProgress(yesterday.id).found} />
       {:else}
         <p>There was no puzzle the day before. This is the first one.</p>
       {/if}
