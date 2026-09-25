@@ -17,15 +17,20 @@ Rankings list until it is reached.
 
 ## Feedback
 Errors, checked in this order: "Too short", "Too long", "Bad letters", "Missing center letter", "Already found", "Not in word list".
-An error shakes the input, shows a black message, and clears the word after a second. Typing again clears it at once.
-A found word shows "Good!" for 4 letters, "Nice!" for 5, "Awesome!" for 6 or more, and "Pangram!" in yellow, each with its points.
+An error shakes the input, shows a dark message, and clears the word after 1100ms. Typing again clears it at once.
+"Too long" fires as soon as a 20th letter is typed.
+Praise follows points: "Good!" for 1, "Nice!" for 5 or 6, "Awesome!" for 7 or more, and "Pangram!" in yellow.
+Praise pops for 900ms with its points floating up beside it.
 
 ## Controls
-Letters by tap or keyboard. Enter submits, Backspace deletes, Space shuffles. Shuffle fades the outer letters and reorders them.
+Letters by tap or keyboard. Enter submits, Backspace or Delete deletes, Space shuffles, and each key lights its
+on-screen button while held. Holding the Delete button repeats after 350ms, then every 90ms.
+Shuffle fades the outer letters out over 300ms, reorders them, and fades them back in.
+On desktop an empty input reads "Type or click".
 Typed letters not in the hive show in light gray. The center letter shows in yellow.
 
 ## Screens
-- Splash: yellow, the mark, the name, one line, Play. A returning player sees "Welcome back" and Continue.
+- Splash: yellow, the mark, the name, one line, Play. A returning player sees "Welcome Back", the word count, and Continue.
 - Game: the progress bar and word list, then the input, hive, and Delete, Shuffle and Enter.
   On a phone the word list folds into one bar that shows recent words and opens over the hive.
   From 768px the hive sits left and the word list is an open panel on the right.

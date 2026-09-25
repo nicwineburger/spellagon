@@ -1,19 +1,14 @@
 <script lang="ts">
-import { untrack } from "svelte";
-
 let {
   center,
   outer,
   hidden = false,
-  pressed = null,
   onletter,
 }: {
   center: string;
   outer: string[];
   /** True while the outer letters fade for a shuffle. */
   hidden?: boolean;
-  /** A letter typed on the keyboard, to press its cell. `n` changes on every key. */
-  pressed?: { letter: string; n: number } | null;
   onletter: (letter: string) => void;
 } = $props();
 
@@ -21,29 +16,11 @@ let {
 const HEX = "0,51.96 30,0 90,0 120,51.96 90,103.92 30,103.92";
 const letters = $derived([center, ...outer]);
 
-let tapped = $state<number | null>(null);
-let timer: ReturnType<typeof setTimeout> | undefined;
-function press(index: number) {
-  tapped = null;
-  clearTimeout(timer);
-  requestAnimationFrame(() => {
-    tapped = index;
-    timer = setTimeout(() => (tapped = null), 120);
-  });
-}
-
-$effect(() => {
-  if (!pressed) return;
-  // Only a new key press should press a cell, not a shuffle that reorders the letters.
-  const index = untrack(() => letters.indexOf(pressed.letter));
-  if (index >= 0) press(index);
-});
-
-function tap(index: number) {
-  press(index);
-  onletter(letters[index] ?? "");
-}
+/** The cell held down by a pointer. Only its fill shrinks, as in the original. */
+let held = $state<number | null>(null);
 </script>
+
+<svelte:window onpointerup={() => (held = null)} onpointercancel={() => (held = null)} />
 
 <div class="hive" role="group" aria-label="Letters">
   {#each letters as letter, i (i)}
@@ -51,19 +28,20 @@ function tap(index: number) {
       type="button"
       class="cell"
       class:center={i === 0}
-      class:pressed={tapped === i}
+      class:held={held === i}
       data-letter={letter}
       aria-label={i === 0 ? `${letter.toUpperCase()}, center letter` : letter.toUpperCase()}
       onpointerdown={(event) => {
         event.preventDefault();
-        tap(i);
+        held = i;
+        onletter(letter);
       }}
       onkeydown={(event) => {
         if (event.key === "Enter" || event.key === " ") event.stopPropagation();
       }}
       onclick={(event) => {
         // Pointer taps are handled on pointerdown. A click with no pointer comes from the keyboard.
-        if (event.detail === 0) tap(i);
+        if (event.detail === 0) onletter(letter);
       }}
     >
       <svg viewBox="0 0 120 103.92" aria-hidden="true">
@@ -77,8 +55,9 @@ function tap(index: number) {
 <style>
   .hive {
     position: relative;
-    width: 100%;
-    padding-bottom: 100%;
+    width: 90%;
+    margin: 25px auto;
+    padding-bottom: 103.923%;
   }
 
   .cell {
@@ -144,15 +123,9 @@ function tap(index: number) {
     fill: var(--bee);
   }
 
-  .pressed polygon,
-  .pressed text {
-    animation: push 120ms ease-out;
-  }
-
-  @keyframes push {
-    50% {
-      transform: scale(0.9);
-    }
+  .held polygon,
+  .cell:active polygon {
+    transform: scale(0.86);
   }
 
   text {
@@ -162,9 +135,7 @@ function tap(index: number) {
     font-weight: 700;
     text-anchor: middle;
     text-transform: uppercase;
-    transition: opacity 200ms;
-    transform-origin: center;
-    transform-box: fill-box;
+    transition: opacity 300ms;
     pointer-events: none;
   }
 
@@ -174,5 +145,17 @@ function tap(index: number) {
 
   text.hidden {
     opacity: 0;
+  }
+
+  @media (max-width: 375px) {
+    .hive {
+      width: 70%;
+      margin: 4vh auto;
+      padding-bottom: 80.829%;
+    }
+
+    text {
+      font-size: 2.5em;
+    }
   }
 </style>
