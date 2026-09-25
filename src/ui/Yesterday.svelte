@@ -1,6 +1,6 @@
 <script lang="ts">
 import { longDate } from "../game/date";
-import { isPangram, type Puzzle } from "../game/puzzle";
+import { isPangram, type Puzzle, titleCase } from "../game/puzzle";
 import { finalRank } from "../game/quips";
 
 let { puzzle, found }: { puzzle: Puzzle; found: string[] } = $props();
@@ -19,7 +19,7 @@ const result = $derived(finalRank(puzzle, found));
   {#each puzzle.answers as word (word)}
     {@const got = found.includes(word)}
     <li class:pangram={isPangram(word)} class:found={got}>
-      {word}{#if got}<span class="sr-only">, found</span>{/if}
+      {titleCase(word)}{#if got}<span class="sr-only">, found</span>{/if}
     </li>
   {/each}
 </ul>
@@ -55,7 +55,6 @@ const result = $derived(finalRank(puzzle, found));
     position: relative;
     padding: 7px 0 0 24px;
     line-height: 1.5;
-    text-transform: capitalize;
     break-inside: avoid;
   }
 

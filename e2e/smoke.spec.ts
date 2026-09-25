@@ -87,7 +87,7 @@ test("a found word scores, lists, and survives a reload", async ({ page }) => {
   await page.getByRole("button", { name: "Continue" }).click();
   const list = page.getByRole("list", { name: "Found words" });
   if (!(await list.isVisible())) await page.getByRole("button", { name: /your words/ }).click();
-  await expect(list.getByRole("listitem")).toHaveText([word]);
+  await expect(list.getByRole("listitem")).toHaveText([word.charAt(0).toUpperCase() + word.slice(1)]);
 });
 
 test("shuffle keeps the center and the same letters", async ({ page }) => {
@@ -307,4 +307,17 @@ test("a Genius notice reached just before leaving shows on return", async ({ pag
   await page.waitForTimeout(1300);
   await page.getByRole("button", { name: /^January 1, 2020/ }).click();
   await expect(page.getByRole("dialog", { name: "Genius" })).toBeVisible();
+});
+
+test("the word bar shows every found word with an initial capital", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const letters = await play(page);
+  const words = answersFor(letters).slice(0, 3);
+  for (const word of words) {
+    await page.keyboard.type(word);
+    await page.keyboard.press("Enter");
+  }
+  // Checked in the page text itself, so it holds in every browser, not only where CSS capitalize behaves.
+  const shown = await page.locator(".recent > span").allTextContents();
+  expect(shown).toEqual(words.toReversed().map((w) => w.charAt(0).toUpperCase() + w.slice(1)));
 });

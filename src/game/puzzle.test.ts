@@ -14,6 +14,7 @@ import {
   rankFor,
   ranksFor,
   score,
+  titleCase,
 } from "./puzzle";
 
 const synthetic: Puzzle = {
@@ -159,5 +160,12 @@ describe("hasPuzzle", () => {
     expect(hasPuzzle("2025-02-29", "2026-09-25")).toBe(false);
     expect(hasPuzzle("2025-13-01", "2026-09-25")).toBe(false);
     expect(hasPuzzle("junk", "2026-09-25")).toBe(false);
+  });
+});
+
+describe("titleCase", () => {
+  it("capitalizes only the first letter", () => {
+    expect(titleCase("pangram")).toBe("Pangram");
+    expect(titleCase("")).toBe("");
   });
 });
