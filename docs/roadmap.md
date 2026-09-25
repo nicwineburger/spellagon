@@ -12,7 +12,7 @@ Status: `[ ]` to do, `[~]` in progress, `[x]` done with the pull request number.
 ## MVP
 - [x] Playable daily game with hive, input, scoring, ranks, word list, hints, yesterday's answers and help. GitHub Pages deploy. Done in #1.
 - [x] Match the game screen to the original: praise, timing, motion, progress bar, Rankings, layout, colors. Done in #4.
-- [~] Match the word list, modals, Yesterday's Answers, How to Play and toolbar to the original.
+- [x] Match the word list, modals, Yesterday's Answers, How to Play and toolbar to the original. Done in #5.
 
 ## Next
 - [ ] Share button that copies the rank and score as text.
