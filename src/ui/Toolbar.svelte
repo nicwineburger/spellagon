@@ -12,15 +12,30 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
   let moreButton: HTMLButtonElement;
 
   function choose(panel: Panel) {
+    // Focus More first, so the dialog hands focus back to it when it closes.
+    moreButton.focus();
     menuOpen = false;
     onopen(panel);
   }
 
+  // A dialog opening from anywhere closes the menu.
+  $effect(() => {
+    if (inert) menuOpen = false;
+  });
+
+  function focusout(event: FocusEvent) {
+    if (menuOpen && !more.contains(event.relatedTarget as Node | null)) menuOpen = false;
+  }
+
   function keydown(event: KeyboardEvent) {
-    if (menuOpen && event.key === "Escape") {
+    if (!menuOpen) return;
+    if (event.key === "Escape") {
       event.preventDefault();
       menuOpen = false;
       moreButton.focus();
+    } else if (/^[a-zA-Z]$/.test(event.key) || event.key === "Backspace") {
+      // Playing closes the menu.
+      menuOpen = false;
     }
   }
 
@@ -41,7 +56,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
       <span class="short">Yesterday</span><span class="long">Yesterday’s Answers</span>
     </button>
     <button type="button" class="tool" onclick={() => onopen("hints")}>Hints</button>
-    <div class="more" bind:this={more}>
+    <div class="more" bind:this={more} onfocusout={focusout}>
       <button
         type="button"
         class="tool"
@@ -204,6 +219,20 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
     .tool {
       padding: 0 var(--space-2);
       font-size: var(--text-sm);
+    }
+  }
+
+  @media (max-width: 359px) {
+    .toolbar {
+      padding-left: var(--space-3);
+    }
+
+    .date {
+      font-size: var(--text-xs);
+    }
+
+    .tool {
+      padding: 0 6px;
     }
   }
 </style>

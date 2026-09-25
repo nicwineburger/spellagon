@@ -1,15 +1,17 @@
 <script lang="ts">
-import { untrack } from "svelte";
 import { isPangram } from "../game/puzzle";
 
 let {
   found,
+  latest = null,
   open = false,
   wide = false,
   ontoggle,
 }: {
   /** Words in the order they were found. */
   found: string[];
+  /** The word just found in this tab, which slides in. Loaded or merged words do not. */
+  latest?: string | null;
   open?: boolean;
   /** Desktop layout: always open, no toggle. */
   wide?: boolean;
@@ -25,9 +27,7 @@ const sorted = $derived([...found].sort());
 const recent = $derived([...found].reverse());
 const heading = $derived(`You have found ${found.length} ${found.length === 1 ? "word" : "words"}`);
 
-// Only words found while this list is on screen slide in. Words loaded with the page do not.
-const initial = untrack(() => found.length);
-const fresh = $derived(found.length > initial ? found.at(-1) : undefined);
+const fresh = $derived(latest ?? undefined);
 
 let broad = $state(false);
 $effect(() => {
@@ -106,8 +106,8 @@ function go(to: number) {
             <li class:pangram={isPangram(word)} class:start={i % perPage === 0}>{word}</li>
           {/each}
         </ul>
-        {#if pages > 1}
-          <div class="pager">
+        <!-- The pager always holds its space, so the rows per page never depend on whether it showed before. -->
+        <div class="pager" class:idle={pages <= 1} aria-hidden={pages <= 1}>
             <button type="button" class="arrow" aria-label="Previous page" disabled={page === 0} onclick={() => go(page - 1)}>
               <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M11.5 3l-6 6 6 6" /></svg>
             </button>
@@ -124,7 +124,6 @@ function go(to: number) {
               <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 3l6 6-6 6" /></svg>
             </button>
           </div>
-        {/if}
       </div>
     </div>
   </div>
@@ -316,6 +315,10 @@ function go(to: number) {
   .pangram,
   .words li.pangram {
     font-weight: 700;
+  }
+
+  .pager.idle {
+    visibility: hidden;
   }
 
   .pager {

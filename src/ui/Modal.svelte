@@ -49,7 +49,9 @@ function keydown(event: KeyboardEvent) {
     position: relative;
     width: 100%;
     overflow-y: auto;
-    padding: 32px;
+    --pad-top: 32px;
+    --pad-right: 32px;
+    padding: var(--pad-top) var(--pad-right) 32px 32px;
     border-radius: var(--radius-modal);
     background: var(--bg);
     box-shadow: var(--shadow);
@@ -60,10 +62,13 @@ function keydown(event: KeyboardEvent) {
     outline: none;
   }
 
+  /* Sticky, so the close button stays in reach while a long dialog scrolls. */
   .close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    float: right;
+    margin: calc(12px - var(--pad-top)) calc(12px - var(--pad-right)) 0 0;
     display: flex;
     width: 44px;
     height: 44px;
@@ -103,7 +108,9 @@ function keydown(event: KeyboardEvent) {
 
     .modal {
       width: 540px;
-      max-height: 600px;
+      max-height: min(600px, calc(100dvh - 32px));
+      --pad-top: 44px;
+      --pad-right: 44px;
       padding: 44px;
       box-shadow: var(--shadow-wide);
       animation: grow 150ms ease-out;
@@ -119,6 +126,8 @@ function keydown(event: KeyboardEvent) {
   @media (min-width: 992px) {
     .modal {
       width: 667px;
+      --pad-top: 56px;
+      --pad-right: 158px;
       padding: 56px 158px 56px 56px;
     }
 

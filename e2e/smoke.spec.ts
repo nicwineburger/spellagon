@@ -173,3 +173,32 @@ test("a long word stays inside the page on a narrow phone", async ({ page }) => 
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(320);
 });
+
+test("the toolbar fits a 320px phone without overlap", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await play(page);
+  const date = await page.locator(".toolbar .date").boundingBox();
+  const nav = await page.locator(".toolbar nav").boundingBox();
+  expect((date?.x ?? 0) + (date?.width ?? 0)).toBeLessThanOrEqual(nav?.x ?? 0);
+});
+
+test("a dialog fits a landscape phone and keeps its close button in reach", async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await play(page);
+  await page.getByRole("button", { name: /^Yesterday/ }).click();
+  const dialog = page.getByRole("dialog");
+  const box = await dialog.boundingBox();
+  expect(box?.y ?? -1).toBeGreaterThanOrEqual(0);
+  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(390);
+  await dialog.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect(page.getByRole("button", { name: "Close" })).toBeInViewport();
+});
+
+test("closing a dialog opened from More returns focus to More", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "How to Play" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "More" })).toBeFocused();
+  await expect(page.locator("#more-menu")).toBeHidden();
+});
