@@ -14,6 +14,9 @@ Status: `[ ]` to do, `[~]` in progress, `[x]` done with the pull request number.
 - [x] Match the game screen to the original: praise, timing, motion, progress bar, Rankings, layout, colors. Done in #4.
 - [x] Match the word list, modals, Yesterday's Answers, How to Play and toolbar to the original. Done in #5.
 
+- [x] Closer phone toolbar, progress marker and buttons. Done in #6.
+- [x] Past puzzles: every day back to May 9, 2018, from a calendar, with a link per day. Done in #7.
+
 ## Next
 - [ ] Share button that copies the rank and score as text.
 - [ ] Move hosting to Cloudflare Pages. The `cloudflare` CI job is ready and waits on its repo variable and secrets.

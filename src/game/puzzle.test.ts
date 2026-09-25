@@ -4,6 +4,8 @@ import {
   answersFor,
   daysBetween,
   EPOCH,
+  FIRST_DATE,
+  hasPuzzle,
   judge,
   lettersFor,
   type Puzzle,
@@ -80,7 +82,7 @@ describe("dates", () => {
 
   it("gives each day its own letters", () => {
     expect(lettersFor(EPOCH)).not.toBe(lettersFor(addDays(EPOCH, 1)));
-    expect(lettersFor("2020-01-01")).toBe(lettersFor(EPOCH));
+    expect(lettersFor(addDays(EPOCH, -1))).not.toBe(lettersFor(EPOCH));
   });
 });
 
@@ -115,5 +117,47 @@ describe("the schedule", () => {
   it("never repeats a letter set", () => {
     const sets = puzzles.map((p) => [p.center, ...p.outer].sort().join(""));
     expect(new Set(sets).size).toBe(sets.length);
+  });
+});
+
+describe("the archive", () => {
+  const days = Array.from({ length: daysBetween(FIRST_DATE, EPOCH) }, (_, i) => addDays(FIRST_DATE, i));
+
+  it("reaches back to May 9, 2018", () => {
+    expect(FIRST_DATE).toBe("2018-05-09");
+  });
+
+  it("gives every past day a playable puzzle", () => {
+    for (const day of days) {
+      const puzzle = puzzleFor(day);
+      const letters = [puzzle.center, ...puzzle.outer];
+      expect(new Set(letters).size).toBe(7);
+      expect(letters).not.toContain("s");
+      expect(puzzle.pangrams.length).toBeGreaterThan(0);
+      expect(puzzle.answers.length).toBeGreaterThanOrEqual(20);
+      expect(puzzle.answers.length).toBeLessThanOrEqual(70);
+    }
+  });
+
+  it("never repeats a puzzle, in the archive or the next three years of dailies", () => {
+    const future = Array.from({ length: 3 * 366 }, (_, i) => addDays(EPOCH, i));
+    const keys = [...days, ...future].map((day) => {
+      const p = puzzleFor(day);
+      return p.center + [p.center, ...p.outer].sort().join("");
+    });
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("hasPuzzle", () => {
+  it("allows the archive through today, and only real dates", () => {
+    expect(hasPuzzle("2018-05-09", "2026-09-25")).toBe(true);
+    expect(hasPuzzle("2018-05-08", "2026-09-25")).toBe(false);
+    expect(hasPuzzle("2026-09-25", "2026-09-25")).toBe(true);
+    expect(hasPuzzle("2026-09-26", "2026-09-25")).toBe(false);
+    expect(hasPuzzle("2024-02-29", "2026-09-25")).toBe(true);
+    expect(hasPuzzle("2025-02-29", "2026-09-25")).toBe(false);
+    expect(hasPuzzle("2025-13-01", "2026-09-25")).toBe(false);
+    expect(hasPuzzle("junk", "2026-09-25")).toBe(false);
   });
 });

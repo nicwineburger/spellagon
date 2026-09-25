@@ -1,8 +1,20 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { puzzleDate } from "./game/date";
-import { addDays, EPOCH, judge, MAX_LENGTH, praise, puzzleFor, rankFor, ranksFor, score } from "./game/puzzle";
+import {
+  addDays,
+  FIRST_DATE,
+  hasPuzzle,
+  judge,
+  MAX_LENGTH,
+  praise,
+  puzzleFor,
+  rankFor,
+  ranksFor,
+  score,
+} from "./game/puzzle";
 import { loadProgress, mergeProgress, type Progress, saveProgress } from "./game/store";
+import Archive from "./ui/Archive.svelte";
 import Hints from "./ui/Hints.svelte";
 import Hive from "./ui/Hive.svelte";
 import HowToPlay from "./ui/HowToPlay.svelte";
@@ -17,17 +29,26 @@ import Yesterday from "./ui/Yesterday.svelte";
 type Dialog = Panel | "genius" | "queen";
 type Message = { id: number; text: string; kind: "error" | "praise" | "pangram"; points?: number };
 
-const startDate = puzzleDate();
+/** A past puzzle is addressed by its date in the URL hash, like #2026-09-12. */
+function dateFromHash(today: string): string {
+  const wanted = location.hash.slice(1);
+  return hasPuzzle(wanted, today) ? wanted : today;
+}
+
+const startToday = puzzleDate();
+let today = $state(startToday);
+const startDate = dateFromHash(startToday);
 let date = $state(startDate);
 const puzzle = $derived(puzzleFor(date));
 const yesterdayDate = $derived(addDays(date, -1));
-const yesterday = $derived(yesterdayDate < EPOCH ? null : puzzleFor(yesterdayDate));
+const yesterday = $derived(yesterdayDate < FIRST_DATE ? null : puzzleFor(yesterdayDate));
 let progress = $state<Progress>(loadProgress(startDate));
 const points = $derived(progress.found.reduce((sum, word) => sum + score(word), 0));
 const ranks = $derived(ranksFor(puzzle.maxScore));
 const rank = $derived(rankFor(points, puzzle.maxScore));
 
-let playing = $state(false);
+let view = $state<"splash" | "game" | "archive">("splash");
+const playing = $derived(view === "game");
 let outer = $state<string[]>(puzzleFor(startDate).outer);
 let input = $state("");
 let message = $state<Message | null>(null);
@@ -200,22 +221,54 @@ function releaseDelete() {
   clearTimeout(repeatTimer);
 }
 
-/** A tab left open past 3 a.m. Eastern moves on to the new puzzle. */
-function refresh() {
-  const today = puzzleDate();
-  if (today === date) {
-    progress = mergeProgress(progress, loadProgress(date));
-    return;
-  }
+/** Switches to another day's puzzle, fresh from storage. */
+function openDate(next: string) {
   clearTimeout(noticeTimer);
+  clearTimeout(messageTimer);
+  settle();
   pendingNotice = null;
-  date = today;
-  progress = loadProgress(today);
+  date = next;
+  progress = loadProgress(next);
   lastFound = null;
-  outer = puzzleFor(today).outer;
+  outer = puzzleFor(next).outer;
   input = "";
   message = null;
+  listOpen = false;
   if (modal === "genius" || modal === "queen") modal = null;
+  const hash = next === today ? "" : `#${next}`;
+  if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
+}
+
+/** At 3 a.m. Eastern a player on today's puzzle moves on to the new one. A past puzzle stays put. */
+function refresh() {
+  const now = puzzleDate();
+  if (now !== today) {
+    const wasToday = date === today;
+    today = now;
+    if (wasToday) {
+      openDate(now);
+      return;
+    }
+  }
+  progress = mergeProgress(progress, loadProgress(date));
+}
+
+function hashchange() {
+  const next = dateFromHash(today);
+  if (next !== date) {
+    openDate(next);
+    view = "splash";
+  }
+}
+
+function pick(next: string) {
+  if (next !== date) openDate(next);
+  view = "game";
+}
+
+function openPanel(panel: Panel) {
+  if (panel === "archive") view = "archive";
+  else modal = panel;
 }
 
 /** Another tab saved progress for this puzzle. */
@@ -231,7 +284,9 @@ onMount(() => {
   const tick = setInterval(refresh, 60_000);
   document.addEventListener("visibilitychange", refresh);
   window.addEventListener("storage", storage);
+  window.addEventListener("hashchange", hashchange);
   return () => {
+    window.removeEventListener("hashchange", hashchange);
     window.removeEventListener("storage", storage);
     query.removeEventListener("change", update);
     clearInterval(tick);
@@ -260,10 +315,18 @@ const chars = $derived(
 
 <svelte:window onkeydown={keydown} onkeyup={keyup} onblur={() => (activeKey = null)} onpointerup={releaseDelete} />
 
-{#if !playing}
-  <Splash {date} count={progress.found.length} onplay={() => (playing = true)} />
+{#if view === "splash"}
+  <Splash {date} count={progress.found.length} onplay={() => (view = "game")} onarchive={() => (view = "archive")} />
+{:else if view === "archive"}
+  <Archive {today} current={date} onpick={pick} onback={() => (view = "splash")} />
 {:else}
-  <Toolbar inert={modal !== null} {date} onback={() => (playing = false)} onopen={(panel) => (modal = panel)} />
+  <Toolbar
+    inert={modal !== null}
+    {date}
+    past={date !== today}
+    onback={() => (view = date === today ? "splash" : "archive")}
+    onopen={openPanel}
+  />
   <main class="game" class:wide inert={modal !== null}>
     <section class="status">
       <ProgressBar {ranks} {points} onopen={() => (modal = "rankings")} />
@@ -337,7 +400,7 @@ const chars = $derived(
       {#if yesterday}
         <Yesterday puzzle={yesterday} found={loadProgress(yesterday.date).found} />
       {:else}
-        <p>There was no puzzle yesterday. This is the first one.</p>
+        <p>There was no puzzle the day before. This is the first one.</p>
       {/if}
     </Modal>
   {:else if modal === "genius"}
