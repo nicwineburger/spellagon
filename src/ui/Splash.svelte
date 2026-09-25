@@ -2,7 +2,8 @@
 import { longDate } from "../game/date";
 import Logo from "./Logo.svelte";
 
-let { date, count, onplay }: { date: string; count: number; onplay: () => void } = $props();
+let { date, count, onplay, onarchive }: { date: string; count: number; onplay: () => void; onarchive: () => void } =
+  $props();
 
 const back = $derived(count > 0);
 </script>
@@ -18,6 +19,7 @@ const back = $derived(count > 0);
     <p class="line">How many words can you make with 7 letters?</p>
     <button type="button" class="pill solid" onclick={onplay}>Play</button>
   {/if}
+  <button type="button" class="pill secondary" onclick={onarchive}>Past Puzzles</button>
   <p class="date">{longDate(date)}</p>
   <p class="fine">A fan project, not affiliated with The New York Times.</p>
 </main>
@@ -59,6 +61,14 @@ const back = $derived(count > 0);
     border-color: #000;
     background: #000;
     color: #fff;
+  }
+
+  .pill.secondary {
+    margin-top: var(--space-3);
+    border-color: #000;
+    background: transparent;
+    color: #000;
+    font-weight: 600;
   }
 
   .date {

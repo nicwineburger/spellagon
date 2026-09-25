@@ -209,3 +209,102 @@ test("the back arrow returns to the splash", async ({ page }) => {
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 });
+
+test("the archive opens a past puzzle, keeps its progress, and marks the day", async ({ page }) => {
+  await page.goto("/");
+  const todayLetters = await page.getByRole("button", { name: "Play" }).isVisible();
+  expect(todayLetters).toBe(true);
+  await page.getByRole("button", { name: "Past Puzzles" }).click();
+  await page.getByRole("button", { name: "Previous month" }).click();
+  const first = page.locator(".day:not(:disabled)").first();
+  const label = (await first.getAttribute("aria-label")) ?? "";
+  expect(label).toMatch(/, not started$/);
+  await first.click();
+
+  await expect(page).toHaveURL(/#\d{4}-\d{2}-01$/);
+  const letters = await page
+    .locator(".hive .cell")
+    .evaluateAll((cells) => cells.map((cell) => (cell as HTMLElement).dataset.letter ?? ""));
+  const word = answersFor(letters).sort((a, b) => a.length - b.length)[0] ?? "";
+  await page.keyboard.type(word);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".message .points")).toBeVisible();
+
+  // Back from a past puzzle leads to the archive, where the day now shows progress.
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("button", { name: /^\w+ 1, \d{4}, (Beginner|Good Start|Moving Up), / })).toBeVisible();
+
+  // The link reopens the same puzzle after a reload.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();
+});
+
+test("a bad or future date in the link falls back to today", async ({ page }) => {
+  await page.goto("/#2099-01-01");
+  await expect(page.getByRole("heading", { name: "Spellagon" })).toBeVisible();
+  const today = await page.locator(".splash .date").textContent();
+  await page.goto("/#2018-05-08");
+  await page.reload();
+  await expect(page.locator(".splash .date")).toHaveText(today ?? "");
+  await page.goto("/#2018-05-09");
+  await page.reload();
+  await expect(page.locator(".splash .date")).toHaveText("May 9, 2018");
+});
+
+test("the archive and a past puzzle fit a 320px phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/#2020-01-01");
+  await page.getByRole("button", { name: "Past Puzzles" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await page.getByRole("button", { name: /^January 1, 2020/ }).click();
+  await expect(page.locator(".toolbar .narrow-date")).toBeVisible();
+  await expect(page.locator(".toolbar .narrow-date")).toHaveText("1/1/20");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
+
+test("changing the link to another day closes an open dialog", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "Hints" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.evaluate(() => {
+    location.hash = "#2020-01-01";
+  });
+  await page.getByRole("button", { name: "Play" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("a link to today or junk is tidied away", async ({ page }) => {
+  await page.goto("/#garbage");
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("");
+});
+
+test("a Genius notice reached just before leaving shows on return", async ({ page }) => {
+  await page.goto("/#2020-01-01");
+  await page.getByRole("button", { name: "Play" }).click();
+  const letters = await page
+    .locator(".hive .cell")
+    .evaluateAll((cells) => cells.map((cell) => (cell as HTMLElement).dataset.letter ?? ""));
+  const words = answersFor(letters);
+  const score = (w: string) => (w.length === 4 ? 1 : w.length) + (new Set(w).size === 7 ? 7 : 0);
+  const genius = Math.round(0.7 * words.reduce((sum, w) => sum + score(w), 0));
+  // Seed words until one more crosses Genius, then play that last word by hand.
+  const seeded: string[] = [];
+  let points = 0;
+  const rest = [...words];
+  while (rest.length > 0 && points + score(rest[0] ?? "") < genius) {
+    const word = rest.shift() ?? "";
+    seeded.push(word);
+    points += score(word);
+  }
+  const last = rest[0] ?? "";
+  await page.evaluate((found) => localStorage.setItem("spellagon:2020-01-01", JSON.stringify({ found })), seeded);
+  await page.reload();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.keyboard.type(last);
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.waitForTimeout(1300);
+  await page.getByRole("button", { name: /^January 1, 2020/ }).click();
+  await expect(page.getByRole("dialog", { name: "Genius" })).toBeVisible();
+});

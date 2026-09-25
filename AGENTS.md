@@ -10,7 +10,7 @@ Work is tracked in `docs/roadmap.md`. Pick tasks from it and update it in the sa
 - `pnpm dev` starts the dev server. `pnpm test` runs tests only.
 - `pnpm test:e2e` runs the browser smoke test on the production build. Run it after UI changes.
   Set `PW_CHROMIUM` to a Chromium path to use a preinstalled browser.
-- `pnpm words` rebuilds `src/game/words.txt` and `src/game/puzzles.txt` from SCOWL. Commit both outputs.
+- `pnpm words` rebuilds the word list, `puzzles.txt` and `archive.txt` in `src/game/` from SCOWL. Commit the outputs.
 
 ## Workflow
 - Never commit to `main`. Branch, open a PR, squash-merge. Pushes to `main` deploy to GitHub Pages once checks pass.
@@ -20,7 +20,7 @@ Work is tracked in `docs/roadmap.md`. Pick tasks from it and update it in the sa
 
 ## Rules
 - Nothing the player owns may leave their browser. No backend, no analytics, no third-party requests.
-- Never change a past day's puzzle. `puzzles.txt` only grows at the end.
+- Never change a past day's puzzle. `puzzles.txt` and `archive.txt` only grow at the end.
 - Never use NYT names, logos, bylines or proprietary fonts. The game plays like the Bee; it is not the Bee.
 - TypeScript only, strict mode. Prefer plain functions and small modules over new dependencies.
 - Ask before adding a runtime dependency. Bundle size matters.

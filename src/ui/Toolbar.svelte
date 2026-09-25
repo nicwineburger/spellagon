@@ -1,5 +1,5 @@
 <script lang="ts" module>
-export type Panel = "yesterday" | "hints" | "help" | "rankings";
+export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
 </script>
 
 <script lang="ts">
@@ -7,10 +7,16 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
 
   let {
     date,
+    past = false,
     inert = false,
     onback,
     onopen,
-  }: { date: string; inert?: boolean; onback: () => void; onopen: (panel: Panel) => void } = $props();
+  }: { date: string; past?: boolean; inert?: boolean; onback: () => void; onopen: (panel: Panel) => void } = $props();
+
+  const SHORT = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+  const NUMERIC = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "numeric", day: "numeric", year: "2-digit" });
+  const shortDate = $derived(SHORT.format(new Date(`${date}T00:00:00Z`)));
+  const numericDate = $derived(NUMERIC.format(new Date(`${date}T00:00:00Z`)));
 
   let menuOpen = $state(false);
   let more: HTMLElement;
@@ -55,6 +61,9 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
   <button type="button" class="back" aria-label="Back" onclick={onback}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5L7.5 12l7.5 7.5" /></svg>
   </button>
+  {#if past}<span class="past" aria-hidden="true"
+      ><span class="wide-date">{shortDate}</span><span class="narrow-date">{numericDate}</span></span
+    >{/if}
   <div class="title">
     <h1>Spellagon</h1>
     <span class="date">{longDate(date)}</span>
@@ -78,6 +87,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
       <ul id="more-menu" class="menu" hidden={!menuOpen}>
         <li><button type="button" onclick={() => choose("help")}>How to Play</button></li>
         <li><button type="button" onclick={() => choose("rankings")}>Rankings</button></li>
+        <li><button type="button" onclick={() => choose("archive")}>Past Puzzles</button></li>
       </ul>
     </div>
   </nav>
@@ -115,6 +125,18 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
     stroke-width: 2.25;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  /* A past puzzle names its date beside the back arrow on a phone. Desktop shows the full date in the title. */
+  .past {
+    display: none;
+    min-width: 0;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .narrow-date {
+    display: none;
   }
 
   .title {
@@ -237,6 +259,11 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
       margin-left: auto;
     }
 
+    .past {
+      display: block;
+      font-size: var(--text-sm);
+    }
+
     .short {
       display: inline;
     }
@@ -251,4 +278,14 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings";
     }
   }
 
+  /* Below 360px a past date shortens to 5/20/18 so the toolbar still fits. */
+  @media (max-width: 359px) {
+    .wide-date {
+      display: none;
+    }
+
+    .narrow-date {
+      display: inline;
+    }
+  }
 </style>

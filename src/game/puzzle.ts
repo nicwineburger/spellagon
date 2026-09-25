@@ -1,3 +1,4 @@
+import archiveText from "./archive.txt?raw";
 import puzzleText from "./puzzles.txt?raw";
 import wordText from "./words.txt?raw";
 
@@ -20,7 +21,7 @@ export interface Rank {
   min: number;
 }
 
-/** The first puzzle's date. Every later day takes the next line of `puzzles.txt`. */
+/** The first daily puzzle's date. Every later day takes the next line of `puzzles.txt`. */
 export const EPOCH = "2026-09-01";
 export const MIN_LENGTH = 4;
 export const MAX_LENGTH = 19;
@@ -40,6 +41,8 @@ const RANKS: [string, number][] = [
 ];
 
 const schedule = puzzleText.trim().split("\n");
+/** Days before `EPOCH`, newest first: line 1 is the day before `EPOCH`. */
+const archive = archiveText.trim().split("\n");
 const dictionary = wordText.trim().split("\n");
 
 export const isPangram = (word: string): boolean => new Set(word).size === 7;
@@ -58,10 +61,22 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** Letters for a date: center first, then the six outer letters. */
+/** The earliest date with a puzzle, the far end of the archive. */
+export const FIRST_DATE = addDays(EPOCH, -archive.length);
+
+/** Letters for a date: center first, then the six outer letters. Dates before `FIRST_DATE` get the first puzzle. */
 export function lettersFor(date: string): string {
-  const index = Math.max(0, daysBetween(EPOCH, date)) % schedule.length;
-  return schedule[index] ?? "";
+  const offset = daysBetween(EPOCH, date);
+  if (offset < 0) return archive[Math.min(-offset, archive.length) - 1] ?? "";
+  return schedule[offset % schedule.length] ?? "";
+}
+
+/** Whether a date has a puzzle: from `FIRST_DATE` through `today`. */
+export function hasPuzzle(date: string, today: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < FIRST_DATE || date > today) return false;
+  // Reject dates that do not exist, like February 30.
+  const time = Date.parse(`${date}T00:00:00Z`);
+  return !Number.isNaN(time) && new Date(time).toISOString().startsWith(date);
 }
 
 export function answersFor(letters: string, words: readonly string[] = dictionary): string[] {
