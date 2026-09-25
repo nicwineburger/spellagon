@@ -1,0 +1,68 @@
+/* Design tokens. Rules for using them are in docs/style.md. Values are sampled from the NYT Spelling Bee. */
+:root {
+  color-scheme: light dark;
+
+  --bg: #ffffff;
+  --ink: #000000;
+  --ink-muted: #787878;
+  --rule: #dcdcdc;
+  --cell: #e6e6e6;
+  --cell-ink: #000000;
+  --bee: #f7da21;
+  --bee-ink: #000000;
+  --invalid: #dcdcdc;
+  --pressed: #eeeeee;
+  --toast: #000000;
+  --toast-ink: #ffffff;
+  --backdrop: rgb(255 255 255 / 0.9);
+  --shadow: 0 4px 23px 0 rgb(0 0 0 / 0.2);
+
+  --font-display: "Rokkitt Variable", Rockwell, "Roboto Slab", Georgia, serif;
+  --font-ui: "Libre Franklin Variable", "Franklin Gothic Medium", Arial, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-input: 1.875rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-box: 6px;
+  --radius-pill: 2.5em;
+
+  --toolbar: 60px;
+  --wide: 768px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --ink: #ffffff;
+    --ink-muted: #9a9a9a;
+    --rule: #3a3a3c;
+    --cell: #3a3a3c;
+    --cell-ink: #ffffff;
+    --invalid: #5a5a5c;
+    --pressed: #2a2a2c;
+    --toast: #ffffff;
+    --toast-ink: #000000;
+    --backdrop: rgb(18 18 18 / 0.9);
+    --shadow: 0 4px 23px 0 rgb(0 0 0 / 0.6);
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: 1.4;
+}

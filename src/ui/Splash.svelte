@@ -1,0 +1,76 @@
+<script lang="ts">
+import { longDate } from "../game/date";
+import Logo from "./Logo.svelte";
+
+let { date, rank, count, onplay }: { date: string; rank: string; count: number; onplay: () => void } = $props();
+
+const back = $derived(count > 0);
+</script>
+
+<main class="splash">
+  <Logo size={72} />
+  {#if back}
+    <h1>Welcome back</h1>
+    <p class="line">
+      You've reached <strong>{rank}</strong> with {count}
+      {count === 1 ? "word" : "words"}. Keep it going!
+    </p>
+    <button type="button" class="pill solid" onclick={onplay}>Continue</button>
+  {:else}
+    <h1>Spellagon</h1>
+    <p class="line">How many words can you make from 7 letters?</p>
+    <button type="button" class="pill solid" onclick={onplay}>Play</button>
+  {/if}
+  <p class="date">{longDate(date)}</p>
+  <p class="fine">A fan project, not affiliated with The New York Times.</p>
+</main>
+
+<style>
+  .splash {
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6) var(--space-4);
+    background: var(--bee);
+    color: #000;
+    text-align: center;
+    --bg: var(--bee);
+    --ink: #000;
+  }
+
+  h1 {
+    margin-top: var(--space-4);
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.05;
+  }
+
+  .line {
+    max-width: 18em;
+    margin: var(--space-3) 0 var(--space-6);
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1.15;
+  }
+
+  .pill {
+    min-width: 10em;
+    border-color: #000;
+    background: #000;
+    color: #fff;
+  }
+
+  .date {
+    margin-top: var(--space-5);
+    font-weight: 700;
+  }
+
+  .fine {
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+  }
+</style>

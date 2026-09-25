@@ -1,0 +1,42 @@
+{
+  "name": "spellagon",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "biome check .",
+    "fix": "biome check --write .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e && svelte-check --tsconfig ./tsconfig.json --output machine --threshold warning",
+    "test": "vitest run --reporter=dot",
+    "test:e2e": "playwright test",
+    "words": "node scripts/build-words.mjs",
+    "check": "biome check . && pnpm -s typecheck && vitest run --reporter=dot && vite build --logLevel warn",
+    "prepare": "husky"
+  },
+  "packageManager": "pnpm@10.4.1",
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@playwright/test": "^1.63.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^26.6.2",
+    "husky": "^9.1.7",
+    "svelte-check": "^4.7.6",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.1",
+    "wordlist-english": "^1.2.1"
+  },
+  "dependencies": {
+    "@fontsource-variable/libre-franklin": "^5.3.0",
+    "@fontsource-variable/rokkitt": "^5.3.0",
+    "svelte": "^5.57.1"
+  }
+}
