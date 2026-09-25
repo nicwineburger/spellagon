@@ -250,3 +250,61 @@ test("a bad or future date in the link falls back to today", async ({ page }) =>
   await page.reload();
   await expect(page.locator(".splash .date")).toHaveText("May 9, 2018");
 });
+
+test("the archive and a past puzzle fit a 320px phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/#2020-01-01");
+  await page.getByRole("button", { name: "Past Puzzles" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await page.getByRole("button", { name: /^January 1, 2020/ }).click();
+  await expect(page.locator(".toolbar .narrow-date")).toBeVisible();
+  await expect(page.locator(".toolbar .narrow-date")).toHaveText("1/1/20");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
+
+test("changing the link to another day closes an open dialog", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "Hints" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.evaluate(() => {
+    location.hash = "#2020-01-01";
+  });
+  await page.getByRole("button", { name: "Play" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("a link to today or junk is tidied away", async ({ page }) => {
+  await page.goto("/#garbage");
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("");
+});
+
+test("a Genius notice reached just before leaving shows on return", async ({ page }) => {
+  await page.goto("/#2020-01-01");
+  await page.getByRole("button", { name: "Play" }).click();
+  const letters = await page
+    .locator(".hive .cell")
+    .evaluateAll((cells) => cells.map((cell) => (cell as HTMLElement).dataset.letter ?? ""));
+  const words = answersFor(letters);
+  const score = (w: string) => (w.length === 4 ? 1 : w.length) + (new Set(w).size === 7 ? 7 : 0);
+  const genius = Math.round(0.7 * words.reduce((sum, w) => sum + score(w), 0));
+  // Seed words until one more crosses Genius, then play that last word by hand.
+  const seeded: string[] = [];
+  let points = 0;
+  const rest = [...words];
+  while (rest.length > 0 && points + score(rest[0] ?? "") < genius) {
+    const word = rest.shift() ?? "";
+    seeded.push(word);
+    points += score(word);
+  }
+  const last = rest[0] ?? "";
+  await page.evaluate((found) => localStorage.setItem("spellagon:2020-01-01", JSON.stringify({ found })), seeded);
+  await page.reload();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.keyboard.type(last);
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.waitForTimeout(1300);
+  await page.getByRole("button", { name: /^January 1, 2020/ }).click();
+  await expect(page.getByRole("dialog", { name: "Genius" })).toBeVisible();
+});

@@ -151,7 +151,8 @@ function submit() {
 function notice(kind: "genius" | "queen") {
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => {
-    if (modal) pendingNotice = kind;
+    // Off the game screen, or behind another dialog, the notice waits until the game shows again.
+    if (modal || view !== "game") pendingNotice = kind;
     else openNotice(kind);
   }, 1100);
 }
@@ -160,6 +161,16 @@ function openNotice(kind: "genius" | "queen") {
   modal = kind;
   progress[kind] = true;
   saveProgress(date, $state.snapshot(progress));
+}
+
+/** Shows the game, and any rank notice that was waiting for it. */
+function play() {
+  view = "game";
+  if (pendingNotice && !modal) {
+    const kind = pendingNotice;
+    pendingNotice = null;
+    openNotice(kind);
+  }
 }
 
 function closeModal() {
@@ -234,8 +245,13 @@ function openDate(next: string) {
   input = "";
   message = null;
   listOpen = false;
-  if (modal === "genius" || modal === "queen") modal = null;
-  const hash = next === today ? "" : `#${next}`;
+  modal = null;
+  syncHash();
+}
+
+/** Keeps the address in step with the puzzle: no hash for today, #YYYY-MM-DD for a past day. */
+function syncHash() {
+  const hash = date === today ? "" : `#${date}`;
   if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
 }
 
@@ -258,12 +274,14 @@ function hashchange() {
   if (next !== date) {
     openDate(next);
     view = "splash";
+  } else {
+    syncHash();
   }
 }
 
 function pick(next: string) {
   if (next !== date) openDate(next);
-  view = "game";
+  play();
 }
 
 function openPanel(panel: Panel) {
@@ -277,6 +295,8 @@ function storage(event: StorageEvent) {
 }
 
 onMount(() => {
+  // A link to today, a future day or junk loses its hash, so the address names what is on screen.
+  syncHash();
   const query = window.matchMedia("(min-width: 768px)");
   const update = () => (wide = query.matches);
   update();
@@ -316,7 +336,7 @@ const chars = $derived(
 <svelte:window onkeydown={keydown} onkeyup={keyup} onblur={() => (activeKey = null)} onpointerup={releaseDelete} />
 
 {#if view === "splash"}
-  <Splash {date} count={progress.found.length} onplay={() => (view = "game")} onarchive={() => (view = "archive")} />
+  <Splash {date} count={progress.found.length} onplay={play} onarchive={() => (view = "archive")} />
 {:else if view === "archive"}
   <Archive {today} current={date} onpick={pick} onback={() => (view = "splash")} />
 {:else}

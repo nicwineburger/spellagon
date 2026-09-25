@@ -82,10 +82,18 @@ function label(day: Day): string {
 
 // Flat-top hexagon, 24 wide and 20.78 tall, drawn around the day's number.
 const HEX = "0,10.39 6,0 18,0 24,10.39 18,20.78 6,20.78";
+
+// Keyboard users land on the open puzzle's day, or the back arrow when that day is in another month.
+let grid = $state<HTMLElement>();
+let back = $state<HTMLButtonElement>();
+$effect(() => {
+  const target = untrack(() => grid?.querySelector<HTMLButtonElement>(".day.current") ?? back);
+  target?.focus({ preventScroll: true });
+});
 </script>
 
 <header class="toolbar">
-  <button type="button" class="back" aria-label="Back" onclick={onback}>
+  <button type="button" class="back" aria-label="Back" onclick={onback} bind:this={back}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5L7.5 12l7.5 7.5" /></svg>
   </button>
   <h1>Past Puzzles</h1>
@@ -114,7 +122,7 @@ const HEX = "0,10.39 6,0 18,0 24,10.39 18,20.78 6,20.78";
     </button>
   </div>
 
-  <div class="grid" role="grid" aria-label="Days">
+  <div class="grid" role="group" aria-label="Days" bind:this={grid}>
     {#each WEEKDAYS as weekday, i (i)}<span class="weekday" aria-hidden="true">{weekday}</span>{/each}
     {#each days as day, i (day?.date ?? `blank-${i}`)}
       {#if day}
@@ -237,7 +245,7 @@ const HEX = "0,10.39 6,0 18,0 24,10.39 18,20.78 6,20.78";
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px 2px;
   }
 
@@ -267,7 +275,8 @@ const HEX = "0,10.39 6,0 18,0 24,10.39 18,20.78 6,20.78";
   }
 
   .day svg {
-    width: 44px;
+    width: 100%;
+    max-width: 44px;
     height: 40px;
     overflow: visible;
   }
