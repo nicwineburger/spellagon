@@ -28,7 +28,7 @@ function keydown(event: KeyboardEvent) {
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
     </button>
     <h2 class="title" id={titleId}>{title}</h2>
-    {@render children()}
+    <div class="content">{@render children()}</div>
   </div>
 </div>
 
@@ -38,32 +38,37 @@ function keydown(event: KeyboardEvent) {
     inset: 0;
     z-index: 10;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     background: var(--backdrop);
     animation: fade 150ms ease-out;
   }
 
+  /* On a phone the frame fills the screen and slides up from the bottom. */
   .modal {
     position: relative;
-    width: min(100%, 600px);
-    max-height: 90vh;
+    width: 100%;
     overflow-y: auto;
-    padding: var(--space-6) var(--space-6) var(--space-5);
-    border-radius: var(--radius-box);
+    --pad-top: 32px;
+    --pad-right: 32px;
+    padding: var(--pad-top) var(--pad-right) 32px 32px;
+    border-radius: var(--radius-modal);
     background: var(--bg);
     box-shadow: var(--shadow);
-    animation: rise 200ms ease-out;
+    animation: slide-up 150ms ease-out;
   }
 
   .modal:focus {
     outline: none;
   }
 
+  /* Sticky, so the close button stays in reach while a long dialog scrolls. */
   .close {
-    position: absolute;
-    top: var(--space-3);
-    right: var(--space-3);
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    float: right;
+    margin: calc(12px - var(--pad-top)) calc(12px - var(--pad-right)) 0 0;
     display: flex;
     width: 44px;
     height: 44px;
@@ -84,24 +89,50 @@ function keydown(event: KeyboardEvent) {
   }
 
   .title {
-    margin-bottom: var(--space-3);
-    padding-right: var(--space-6);
+    margin: 0.5em 0 0.25em;
+    padding-right: 32px;
     font-family: var(--font-display);
-    font-size: 1.75rem;
+    font-size: 1.75em;
     font-weight: 700;
     line-height: 1.1;
   }
 
-  @media (max-width: 767px) {
+  .content {
+    line-height: 1.5;
+  }
+
+  @media (min-width: 768px) {
     .backdrop {
-      align-items: stretch;
+      align-items: center;
     }
 
     .modal {
-      width: 100%;
-      max-height: none;
-      border-radius: 0;
-      box-shadow: none;
+      width: 540px;
+      max-height: min(600px, calc(100dvh - 32px));
+      --pad-top: 44px;
+      --pad-right: 44px;
+      padding: 44px;
+      box-shadow: var(--shadow-wide);
+      animation: grow 150ms ease-out;
+    }
+
+    .title {
+      margin-top: 0;
+      padding-right: 0;
+      font-size: 2em;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .modal {
+      width: 667px;
+      --pad-top: 56px;
+      --pad-right: 158px;
+      padding: 56px 158px 56px 56px;
+    }
+
+    .title {
+      font-size: 2.125em;
     }
   }
 
@@ -111,10 +142,15 @@ function keydown(event: KeyboardEvent) {
     }
   }
 
-  @keyframes rise {
+  @keyframes slide-up {
     from {
-      opacity: 0;
-      transform: translateY(24px);
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes grow {
+    from {
+      transform: scale(0.9);
     }
   }
 </style>

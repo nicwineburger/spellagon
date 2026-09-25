@@ -104,12 +104,19 @@ test("shuffle keeps the center and the same letters", async ({ page }) => {
 
 test("toolbar panels open and close", async ({ page }) => {
   await play(page);
-  for (const [button, title] of [
-    ["How to Play", "How to Play"],
-    ["Hints", "Hints"],
-    ["Yesterday's Answers", "Yesterday’s Answers"],
-  ]) {
-    await page.getByRole("button", { name: button }).click();
+  const more = page.getByRole("button", { name: "More" });
+  for (const [open, title] of [
+    [async () => page.getByRole("button", { name: /^Yesterday/ }).click(), "Yesterday’s Answers"],
+    [async () => page.getByRole("button", { name: "Hints" }).click(), "Hints"],
+    [
+      async () => {
+        await more.click();
+        await page.getByRole("button", { name: "How to Play" }).click();
+      },
+      "How to Play",
+    ],
+  ] as const) {
+    await open();
     await expect(page.getByRole("dialog", { name: title })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -118,6 +125,30 @@ test("toolbar panels open and close", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Rankings" })).toBeVisible();
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("the More menu opens, closes, and leads to Rankings", async ({ page }) => {
+  await play(page);
+  const more = page.getByRole("button", { name: "More" });
+  const help = page.getByRole("button", { name: "How to Play" });
+  await expect(more).toHaveAttribute("aria-expanded", "false");
+  await expect(help).toBeHidden();
+
+  await more.click();
+  await expect(more).toHaveAttribute("aria-expanded", "true");
+  await expect(help).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(help).toBeHidden();
+  await expect(more).toBeFocused();
+
+  await more.click();
+  await page.getByRole("heading", { name: "Spellagon" }).click();
+  await expect(help).toBeHidden();
+
+  await more.click();
+  await page.getByRole("button", { name: "Rankings", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Rankings" })).toBeVisible();
+  await expect(help).toBeHidden();
 });
 
 test("Enter opens a focused toolbar button, and typing hands Enter back to the game", async ({ page }) => {
@@ -141,4 +172,33 @@ test("a long word stays inside the page on a narrow phone", async ({ page }) => 
   await page.keyboard.type((letters[3] ?? "").repeat(20));
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(320);
+});
+
+test("the toolbar fits a 320px phone without overlap", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await play(page);
+  const date = await page.locator(".toolbar .date").boundingBox();
+  const nav = await page.locator(".toolbar nav").boundingBox();
+  expect((date?.x ?? 0) + (date?.width ?? 0)).toBeLessThanOrEqual(nav?.x ?? 0);
+});
+
+test("a dialog fits a landscape phone and keeps its close button in reach", async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await play(page);
+  await page.getByRole("button", { name: /^Yesterday/ }).click();
+  const dialog = page.getByRole("dialog");
+  const box = await dialog.boundingBox();
+  expect(box?.y ?? -1).toBeGreaterThanOrEqual(0);
+  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(390);
+  await dialog.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect(page.getByRole("button", { name: "Close" })).toBeInViewport();
+});
+
+test("closing a dialog opened from More returns focus to More", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "How to Play" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "More" })).toBeFocused();
+  await expect(page.locator("#more-menu")).toBeHidden();
 });

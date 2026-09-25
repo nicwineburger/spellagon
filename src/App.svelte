@@ -14,7 +14,7 @@ import Toolbar, { type Panel } from "./ui/Toolbar.svelte";
 import WordList from "./ui/WordList.svelte";
 import Yesterday from "./ui/Yesterday.svelte";
 
-type Dialog = Panel | "rankings" | "genius" | "queen";
+type Dialog = Panel | "genius" | "queen";
 type Message = { id: number; text: string; kind: "error" | "praise" | "pangram"; points?: number };
 
 const startDate = puzzleDate();
@@ -38,6 +38,8 @@ let modal = $state<Dialog | null>(null);
 /** The on-screen button a held key lights up: Enter, Delete or Shuffle. */
 let activeKey = $state<"enter" | "delete" | "shuffle" | null>(null);
 let messageId = 0;
+/** The word this tab found most recently, so only it slides into the word list. */
+let lastFound = $state<string | null>(null);
 let wide = $state(false);
 
 let messageTimer: ReturnType<typeof setTimeout> | undefined;
@@ -116,6 +118,7 @@ function submit() {
     ...$state.snapshot(progress),
     found: [...progress.found, verdict.word],
   });
+  lastFound = verdict.word;
   show({ text: praise(verdict.word), kind: verdict.pangram ? "pangram" : "praise", points: verdict.points });
   const after = rankFor(points, puzzle.maxScore).name;
   if (after !== before && after === "Queen Bee" && !progress.queen) notice("queen");
@@ -208,6 +211,7 @@ function refresh() {
   pendingNotice = null;
   date = today;
   progress = loadProgress(today);
+  lastFound = null;
   outer = puzzleFor(today).outer;
   input = "";
   message = null;
@@ -263,7 +267,7 @@ const chars = $derived(
   <main class="game" class:wide inert={modal !== null}>
     <section class="status">
       <ProgressBar {ranks} {points} onopen={() => (modal = "rankings")} />
-      <WordList found={progress.found} open={listOpen} {wide} ontoggle={() => (listOpen = !listOpen)} />
+      <WordList found={progress.found} latest={lastFound} open={listOpen} {wide} ontoggle={() => (listOpen = !listOpen)} />
     </section>
 
     <section class="controls" class:faded={listOpen && !wide} aria-label="Hive">
@@ -367,14 +371,6 @@ const chars = $derived(
     display: flex;
     flex-direction: column;
     margin: 0 12px;
-  }
-
-  .game:not(.wide) .status :global(.wordlist.open) {
-    position: absolute;
-    top: 50px;
-    right: 0;
-    left: 0;
-    height: 68vh;
   }
 
   .controls {
