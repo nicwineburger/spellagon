@@ -9,7 +9,7 @@
   --rule: #dfdfdf;
   --page-dot: #dcdcdc;
   --progress: #ebebeb;
-  --progress-dot: #dcdcdc;
+  --progress-dot: #ebebeb;
   --button-border: #dfdfdf;
   --cell: #e7e7e7;
   --cell-ink: #121212;
@@ -50,6 +50,13 @@
   --wide: 768px;
 }
 
+/* The original's phone toolbar is 47px tall. */
+@media (max-width: 767px) {
+  :root {
+    --toolbar: 47px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #121212;
@@ -58,9 +65,9 @@
     --placeholder: #6b6b6b;
     --rule: #424242;
     --page-dot: #5a5a5c;
-    --progress: #5a5a5a;
-    --progress-dot: #8f8f8f;
-    --button-border: #5a5a5a;
+    --progress: #979797;
+    --progress-dot: #979797;
+    --button-border: #424242;
     --cell: #38383f;
     --cell-ink: #f8f8f8;
     --invalid: #5a5a5c;

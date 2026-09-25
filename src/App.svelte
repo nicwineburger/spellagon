@@ -392,8 +392,8 @@ const chars = $derived(
             onclick={shuffle}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"
-              ><path d="M4.2 10A8 8 0 0 1 18.4 6.6M19.8 14A8 8 0 0 1 5.6 17.4" /><path
-                d="M18.9 2.9l-.4 3.8-3.8-.4M5.1 21.1l.4-3.8 3.8.4"
+              ><path
+                d="M7 2A11 11 0 0 1 21.5 17.5M17 22A11 11 0 0 1 2.5 6.5M5.2.8 7 2 5.2 4.2M18.8 23.2 17 22l1.8-2.2"
               /></svg
             >
           </button>
@@ -596,24 +596,29 @@ const chars = $derived(
     justify-content: center;
   }
 
+  /* Measured from the original at 3x: 93.7 by 51px pills and a 51px circle, 16px apart, with 16px text. */
   .actions .pill {
+    min-width: 93.7px;
+    height: 51px;
     margin: 0 8px;
-    font-size: 1.0625rem;
+    font-size: 1rem;
   }
 
-  .round {
-    width: 3em;
-    min-width: 3em;
+  .actions .round {
+    width: 51px;
+    min-width: 51px;
     padding: 0;
     border-radius: 50%;
   }
 
+  /* Two arcs with an arrowhead where each starts, 23.7px across, as measured from the original. */
   .round svg {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     fill: none;
     stroke: var(--ink);
-    stroke-width: 1.5;
+    stroke-width: 1.8;
+    overflow: visible;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
