@@ -48,9 +48,10 @@ describe("judge", () => {
 });
 
 describe("praise", () => {
-  it("follows word length", () => {
+  it("follows the points a word earns", () => {
     expect(praise("abed")).toBe("Good!");
     expect(praise("faced")).toBe("Nice!");
+    expect(praise("badged")).toBe("Nice!");
     expect(praise("cabbage")).toBe("Awesome!");
     expect(praise("fbcdegab")).toBe("Pangram!");
   });

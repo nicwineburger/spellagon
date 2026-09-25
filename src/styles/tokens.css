@@ -3,19 +3,23 @@
   color-scheme: light dark;
 
   --bg: #ffffff;
-  --ink: #000000;
+  --ink: #121212;
   --ink-muted: #787878;
-  --rule: #dcdcdc;
-  --cell: #e6e6e6;
-  --cell-ink: #000000;
+  --placeholder: #bbbbbb;
+  --rule: #dfdfdf;
+  --progress: #ebebeb;
+  --cell: #e7e7e7;
+  --cell-ink: #121212;
   --bee: #f7da21;
-  --bee-ink: #000000;
-  --invalid: #dcdcdc;
-  --pressed: #eeeeee;
-  --toast: #000000;
-  --toast-ink: #ffffff;
-  --backdrop: rgb(255 255 255 / 0.9);
-  --shadow: 0 4px 23px 0 rgb(0 0 0 / 0.2);
+  --bee-ink: #121212;
+  --check: #f8cd05;
+  --invalid: #dfdfdf;
+  --pressed: #e7e7e7;
+  --toast: #121212;
+  --toast-ink: #f8f8f8;
+  --backdrop: rgb(255 255 255 / 0.38);
+  --shadow: 0 0 10px rgb(0 0 0 / 0.12);
+  --shadow-wide: 0 0 23px rgb(0 0 0 / 0.08);
 
   --font-display: "Rokkitt Variable", Rockwell, "Roboto Slab", Georgia, serif;
   --font-ui: "Libre Franklin Variable", "Franklin Gothic Medium", Arial, sans-serif;
@@ -24,7 +28,7 @@
   --text-sm: 0.875rem;
   --text-md: 1rem;
   --text-lg: 1.25rem;
-  --text-input: 1.875rem;
+  --text-input: 2em;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -35,6 +39,8 @@
   --space-7: 48px;
 
   --radius-box: 6px;
+  --radius-toast: 3px;
+  --radius-modal: 5px;
   --radius-pill: 2.5em;
 
   --toolbar: 60px;
@@ -44,17 +50,20 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #121212;
-    --ink: #ffffff;
+    --ink: #f8f8f8;
     --ink-muted: #9a9a9a;
-    --rule: #3a3a3c;
-    --cell: #3a3a3c;
-    --cell-ink: #ffffff;
+    --placeholder: #6b6b6b;
+    --rule: #424242;
+    --progress: #424242;
+    --cell: #38383f;
+    --cell-ink: #f8f8f8;
     --invalid: #5a5a5c;
-    --pressed: #2a2a2c;
-    --toast: #ffffff;
-    --toast-ink: #000000;
-    --backdrop: rgb(18 18 18 / 0.9);
-    --shadow: 0 4px 23px 0 rgb(0 0 0 / 0.6);
+    --pressed: #38383f;
+    --toast: #38383f;
+    --toast-ink: #f8f8f8;
+    --backdrop: rgb(18 18 18 / 0.38);
+    --shadow: 0 0 10px rgb(0 0 0 / 0.5);
+    --shadow-wide: 0 0 23px rgb(0 0 0 / 0.5);
   }
 }
 

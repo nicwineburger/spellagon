@@ -110,10 +110,11 @@ export function judge(input: string, puzzle: Puzzle, found: readonly string[]): 
   return { ok: true, word, points: score(word), pangram: isPangram(word) };
 }
 
-/** Praise for a found word: by length, or "Pangram!" for one that uses all seven letters. */
+/** Praise for a found word, by its points: "Good!" for 1, "Nice!" up to 6, "Awesome!" from 7, or "Pangram!". */
 export function praise(word: string): string {
   if (isPangram(word)) return "Pangram!";
-  if (word.length === 4) return "Good!";
-  if (word.length === 5) return "Nice!";
-  return "Awesome!";
+  const points = score(word);
+  if (points >= 7) return "Awesome!";
+  if (points > 1) return "Nice!";
+  return "Good!";
 }

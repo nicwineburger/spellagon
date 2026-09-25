@@ -2,7 +2,7 @@
 import { longDate } from "../game/date";
 import Logo from "./Logo.svelte";
 
-let { date, rank, count, onplay }: { date: string; rank: string; count: number; onplay: () => void } = $props();
+let { date, count, onplay }: { date: string; count: number; onplay: () => void } = $props();
 
 const back = $derived(count > 0);
 </script>
@@ -10,15 +10,12 @@ const back = $derived(count > 0);
 <main class="splash">
   <Logo size={72} />
   {#if back}
-    <h1>Welcome back</h1>
-    <p class="line">
-      You've reached <strong>{rank}</strong> with {count}
-      {count === 1 ? "word" : "words"}. Keep it going!
-    </p>
+    <h1>Welcome Back</h1>
+    <p class="line">You’ve found {count} {count === 1 ? "word" : "words"}.</p>
     <button type="button" class="pill solid" onclick={onplay}>Continue</button>
   {:else}
     <h1>Spellagon</h1>
-    <p class="line">How many words can you make from 7 letters?</p>
+    <p class="line">How many words can you make with 7 letters?</p>
     <button type="button" class="pill solid" onclick={onplay}>Play</button>
   {/if}
   <p class="date">{longDate(date)}</p>

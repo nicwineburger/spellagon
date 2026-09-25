@@ -83,7 +83,7 @@ test("a found word scores, lists, and survives a reload", async ({ page }) => {
   await expect(page.getByText("Already found")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
   const list = page.getByRole("list", { name: "Found words" });
   if (!(await list.isVisible())) await page.getByRole("button", { name: /your words/ }).click();
@@ -107,7 +107,7 @@ test("toolbar panels open and close", async ({ page }) => {
   for (const [button, title] of [
     ["How to Play", "How to Play"],
     ["Hints", "Hints"],
-    ["Yesterday's Answers", "Yesterday's Answers"],
+    ["Yesterday's Answers", "Yesterday’s Answers"],
   ]) {
     await page.getByRole("button", { name: button }).click();
     await expect(page.getByRole("dialog", { name: title })).toBeVisible();

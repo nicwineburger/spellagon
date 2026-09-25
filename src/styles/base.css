@@ -52,7 +52,8 @@ a {
   touch-action: manipulation;
 }
 
-.pill:active {
+.pill:active,
+.pill.active {
   background: var(--pressed);
 }
 
