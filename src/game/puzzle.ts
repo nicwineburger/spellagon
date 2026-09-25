@@ -125,6 +125,9 @@ export function judge(input: string, puzzle: Puzzle, found: readonly string[]): 
   return { ok: true, word, points: score(word), pangram: isPangram(word) };
 }
 
+/** A found word as the lists show it: "Pangram". Done in text, since Safari's capitalize runs across adjacent spans. */
+export const titleCase = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1);
+
 /** Praise for a found word, by its points: "Good!" for 1, "Nice!" up to 6, "Awesome!" from 7, or "Pangram!". */
 export function praise(word: string): string {
   if (isPangram(word)) return "Pangram!";

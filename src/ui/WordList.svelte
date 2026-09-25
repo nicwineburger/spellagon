@@ -1,5 +1,5 @@
 <script lang="ts">
-import { isPangram } from "../game/puzzle";
+import { isPangram, titleCase } from "../game/puzzle";
 
 let {
   found,
@@ -81,7 +81,7 @@ function go(to: number) {
             {:else}
               <span class="recent">
                 {#each recent as word (word)}<span class:pangram={isPangram(word)} class:fresh={word === fresh}
-                    >{word}</span
+                    >{titleCase(word)}</span
                   >{/each}
               </span>
             {/if}
@@ -103,7 +103,7 @@ function go(to: number) {
           style:grid-template-rows="repeat({rows}, auto)"
         >
           {#each sorted as word, i (word)}
-            <li class:pangram={isPangram(word)} class:start={i % perPage === 0}>{word}</li>
+            <li class:pangram={isPangram(word)} class:start={i % perPage === 0}>{titleCase(word)}</li>
           {/each}
         </ul>
         <!-- The pager always holds its space, so the rows per page never depend on whether it showed before. -->
@@ -203,7 +203,6 @@ function go(to: number) {
   .recent span {
     float: left;
     padding-right: 7px;
-    text-transform: capitalize;
   }
 
   .recent .fresh {
@@ -304,7 +303,6 @@ function go(to: number) {
     font-weight: 500;
     line-height: 22px;
     text-overflow: ellipsis;
-    text-transform: capitalize;
     white-space: nowrap;
   }
 
