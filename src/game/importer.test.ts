@@ -50,15 +50,29 @@ describe("applyImport", () => {
         { date: "2026-01-02", found: ["abed"] },
       ],
       lookup,
+      "2026-09-25",
       storage,
     );
-    expect(result).toEqual({ days: 1, words: 1, skipped: 1 });
+    expect(result).toEqual({ days: 1, latest: "2026-01-01", words: 1, skipped: 1 });
     expect(loadProgress("2026-01-01/nyt", storage).found).toEqual(["faced", "abed"]);
   });
 
   it("marks a rank reached elsewhere as already announced", () => {
     const storage = memoryStorage();
-    applyImport([{ date: "2026-01-01", found: ["fbcdegab", "abed", "faced", "badge", "cabbage"] }], lookup, storage);
+    applyImport(
+      [{ date: "2026-01-01", found: ["fbcdegab", "abed", "faced", "badge", "cabbage"] }],
+      lookup,
+      "2026-09-25",
+      storage,
+    );
     expect(loadProgress("2026-01-01/nyt", storage)).toMatchObject({ genius: true, queen: true });
+  });
+});
+
+describe("applyImport and the calendar", () => {
+  it("skips a day after today", () => {
+    const storage = memoryStorage();
+    const result = applyImport([{ date: "2026-01-01", found: ["abed"] }], lookup, "2025-12-31", storage);
+    expect(result).toEqual({ days: 0, latest: null, words: 0, skipped: 1 });
   });
 });

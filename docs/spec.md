@@ -57,10 +57,13 @@ Typed letters not in the hive show in light gray. The center letter shows in yel
   the file it downloads, `spellagon.json`.
 - The script runs on NYT's own origin with the player's own session, and reads no token. For each day it looks up
   the puzzle id from `/svc/spelling-bee/v1/<date>.json`, then reads saved progress 20 ids at a time from
-  `/svc/games/state/spelling_bee/latests`. The file keeps only each day's date and found words.
+  `/svc/games/state/spelling_bee/latests`. It checks the session with one request first and stops, saving
+  nothing, when signed out. The file keeps each day's date and found words, plus a `probe` of the state keys,
+  schema versions and errors it saw, for diagnosing a changed endpoint. Nothing else about the account.
 - Importing adds words to each day's progress for the original's puzzle, after any found here, and drops words
-  that are not answers. A day already at Genius or Queen Bee is marked as announced. The last imported date is
-  kept, so the next sync starts two weeks before it. The first sync goes back a year by default.
+  that are not answers, and days after today. A day already at Genius or Queen Bee is marked as announced. If a
+  month of puzzles fails to load, nothing is imported. The latest day applied is kept, so the next sync starts
+  two weeks before it. The first sync goes back a year by default.
 
 ## Data
 - The original's puzzles, where the site has them. `public/puzzles/YYYY-MM.json` holds one entry per day: the

@@ -29,9 +29,11 @@ export function parseImport(input: unknown): ImportedDay[] {
 
 export interface ImportResult {
   days: number;
+  /** The latest day applied, or null when none was. */
+  latest: string | null;
   /** Words new to this browser. Words already found here are not counted again. */
   words: number;
-  /** Days with no original puzzle on this site, so nothing to import into. */
+  /** Days with no original puzzle on this site, or after today, so nothing to import into. */
   skipped: number;
 }
 
@@ -43,12 +45,14 @@ export interface ImportResult {
 export function applyImport(
   days: readonly ImportedDay[],
   puzzleOn: (date: string) => Puzzle,
+  today: string,
   storage: Storage | undefined = globalThis.localStorage,
 ): ImportResult {
-  const result: ImportResult = { days: 0, words: 0, skipped: 0 };
+  const result: ImportResult = { days: 0, latest: null, words: 0, skipped: 0 };
   for (const day of days) {
-    const puzzle = puzzleOn(day.date);
-    if (puzzle.source !== "nyt") {
+    // A day after today has no puzzle to play yet, whatever the file says.
+    const puzzle = day.date <= today ? puzzleOn(day.date) : null;
+    if (puzzle?.source !== "nyt") {
       result.skipped += 1;
       continue;
     }
@@ -63,6 +67,7 @@ export function applyImport(
     merged.queen ||= rank === "Queen Bee";
     saveProgress(puzzle.id, merged, storage);
     result.days += 1;
+    if (!result.latest || day.date > result.latest) result.latest = day.date;
     result.words += merged.found.length - before.found.length;
   }
   return result;

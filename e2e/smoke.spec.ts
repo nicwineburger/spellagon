@@ -445,3 +445,25 @@ test("a file that is not a sync file says so", async ({ page }) => {
   });
   await expect(page.getByRole("alert")).toHaveText("This is not a Spellagon sync file. Run the sync again.");
 });
+
+test("an import names the days it could not use, with a space and the right verb", async ({ page }) => {
+  await servePuzzles(page, { "2026-01-01": "abcdefg fbcdegab abed faced badge" });
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Import Progress" }).click();
+  const file = {
+    version: 1,
+    days: [
+      { date: "2026-01-01", found: ["abed"] },
+      { date: "2099-01-01", found: ["abed"] },
+    ],
+  };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "spellagon.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(file)),
+  });
+  await expect(page.locator(".outcome p")).toHaveText(
+    "Added 1 word across 1 day. 1 day had no puzzle here yet and was left out.",
+  );
+});

@@ -3,7 +3,7 @@ import { untrack } from "svelte";
 import { puzzleDate } from "../game/date";
 import { applyImport, type ImportResult, parseImport } from "../game/importer";
 import { addDays, FIRST_DATE } from "../game/puzzle";
-import { ensure, puzzleOn } from "../game/source.svelte";
+import { ensure, puzzleOn, unloaded } from "../game/source.svelte";
 import { NYT_ORIGIN } from "../nyt/endpoints";
 import { buildSnippet } from "../nyt/snippet";
 
@@ -12,16 +12,17 @@ let { onback, onimported }: { onback: () => void; onimported: () => void } = $pr
 const LAST_IMPORT = "spellagon:lastImport";
 const today = puzzleDate();
 
+const clamp = (date: string) => (date < FIRST_DATE ? FIRST_DATE : date > today ? today : date);
+
 /** A returning player needs only recent days, with two weeks of overlap for late finds. Otherwise a year. */
 function defaultSince(): string {
   try {
     const last = localStorage.getItem(LAST_IMPORT);
-    if (last && /^\d{4}-\d{2}-\d{2}$/.test(last)) return addDays(last, -14);
+    if (last && /^\d{4}-\d{2}-\d{2}$/.test(last)) return clamp(addDays(last, -14));
   } catch {
     // Storage blocked: fall back to a year.
   }
-  const yearAgo = addDays(today, -365);
-  return yearAgo < FIRST_DATE ? FIRST_DATE : yearAgo;
+  return clamp(addDays(today, -365));
 }
 
 let since = $state(untrack(defaultSince));
@@ -31,13 +32,17 @@ let busy = $state(false);
 let error = $state("");
 let result = $state<ImportResult | null>(null);
 let input: HTMLInputElement | undefined = $state();
+let heading: HTMLHeadingElement | undefined = $state();
+$effect(() => heading?.focus());
 
 const valid = $derived(/^\d{4}-\d{2}-\d{2}$/.test(since) && since >= FIRST_DATE && since <= today);
 const snippet = $derived(valid ? buildSnippet(since) : "");
-// About a fifth of a second per day, for the lookup and its pause.
-const minutes = $derived(
-  valid ? Math.max(1, Math.round((Date.parse(today) - Date.parse(since)) / 86_400_000 / 300)) : 0,
-);
+// About a third of a second per day for the lookup and its pause, and as much again per batch of 20.
+const minutes = $derived.by(() => {
+  if (!valid) return 0;
+  const days = (Date.parse(today) - Date.parse(since)) / 86_400_000 + 1;
+  return Math.max(1, Math.round((days * 0.35 + (days / 20) * 0.35) / 60));
+});
 
 async function copy() {
   try {
@@ -57,18 +62,20 @@ async function read(file: File | undefined) {
   try {
     const days = parseImport(JSON.parse(await file.text()));
     // Every month the file touches must be loaded, so each day is matched to the original's puzzle.
-    await ensure(...days.map((d) => d.date));
-    result = applyImport(days, puzzleOn);
-    try {
-      localStorage.setItem(
-        LAST_IMPORT,
-        days
-          .map((d) => d.date)
-          .sort()
-          .at(-1) ?? today,
-      );
-    } catch {
-      // Storage blocked: the next import just starts a year back.
+    const dates = days.map((d) => d.date);
+    await ensure(...dates);
+    // A month that failed to load is not a missing puzzle. Stop, so no day is wrongly left out.
+    if (unloaded(...dates).length > 0) {
+      throw new Error("Some puzzles could not be loaded. Check your connection and add the file again.");
+    }
+    result = applyImport(days, puzzleOn, today);
+    // Remember only a day that was really applied, so the next sync never skips past one that was not.
+    if (result.latest) {
+      try {
+        localStorage.setItem(LAST_IMPORT, result.latest);
+      } catch {
+        // Storage blocked: the next import just starts a year back.
+      }
     }
     onimported();
   } catch (e) {
@@ -78,6 +85,8 @@ async function read(file: File | undefined) {
         : String((e as Error).message);
   } finally {
     busy = false;
+    // Picking the same file again should import it again.
+    if (input) input.value = "";
   }
 }
 
@@ -88,13 +97,18 @@ function onDrop(event: DragEvent) {
 }
 
 const plural = (n: number, word: string) => `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
+const skippedNote = $derived(
+  result && result.skipped > 0
+    ? ` ${plural(result.skipped, "day")} had no puzzle here yet and ${result.skipped === 1 ? "was" : "were"} left out.`
+    : "",
+);
 </script>
 
 <header class="toolbar">
   <button type="button" class="back" aria-label="Back" onclick={onback}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3.8L6.8 12l8.2 8.2" /></svg>
   </button>
-  <h1>Import Your Progress</h1>
+  <h1 tabindex="-1" bind:this={heading}>Import Your Progress</h1>
 </header>
 
 <main class="import">
@@ -163,8 +177,7 @@ const plural = (n: number, word: string) => `${n.toLocaleString("en-US")} ${word
           <p role="alert">{error}</p>
         {:else if result}
           <p>
-            Added {plural(result.words, "word")} across {plural(result.days, "day")}.{#if result.skipped > 0}
-              {plural(result.skipped, "day")} had no puzzle here yet and were left out.{/if}
+            Added {plural(result.words, "word")} across {plural(result.days, "day")}.{skippedNote}
           </p>
           <button type="button" class="pill" onclick={onback}>Back to the Game</button>
         {/if}
@@ -204,6 +217,10 @@ const plural = (n: number, word: string) => `${n.toLocaleString("en-US")} ${word
     stroke-width: 2.25;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  h1:focus {
+    outline: none;
   }
 
   h1 {

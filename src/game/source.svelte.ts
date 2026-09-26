@@ -9,6 +9,8 @@ type Month = Record<string, string>;
 
 let months = new Set<string>();
 let indexJob: Promise<void> | null = null;
+/** True while the last attempt to read the index failed on the network. */
+let indexFailed = false;
 const loadedMonths = new Map<string, Month | null>();
 const pending = new Map<string, Promise<void>>();
 const built = new Map<string, Puzzle>();
@@ -29,7 +31,8 @@ function getJson<T>(url: string, fresh: boolean): Promise<T | null | undefined> 
 function loadIndex(fresh = false): Promise<void> {
   indexJob = getJson<{ months?: unknown }>(`${base()}index.json`, fresh).then((data) => {
     // Offline: forget the attempt so the next call tries again.
-    if (data === undefined) indexJob = null;
+    indexFailed = data === undefined;
+    if (indexFailed) indexJob = null;
     const list = Array.isArray(data?.months) ? data.months.filter((m): m is string => typeof m === "string") : [];
     months = new Set(list);
   });
@@ -58,6 +61,16 @@ export async function ensure(...dates: string[]): Promise<void> {
       loadedMonths.has(month) ? undefined : (pending.get(month) ?? fetchMonth(month)),
     ),
   );
+}
+
+/**
+ * Months among these dates that the site lists but could not load, say offline. A month with no file is not
+ * counted: that day simply has no original puzzle.
+ */
+export function unloaded(...dates: string[]): string[] {
+  const all = [...new Set(dates.map(monthOf))];
+  if (indexFailed) return all;
+  return all.filter((month) => months.has(month) && !loadedMonths.has(month));
 }
 
 /** Loads the index and a month again past the browser cache, for when the day's puzzle was not there yet. */
