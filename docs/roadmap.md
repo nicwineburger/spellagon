@@ -19,6 +19,7 @@ Status: `[ ]` to do, `[~]` in progress, `[x]` done with the pull request number.
 - [x] Match the hive, buttons, progress row and phone toolbar to the pixel, measured from a 3x screenshot. Done in #8.
 - [x] Capitalize found words in the text, since Safari capitalizes across spans. Done in #9.
 - [x] Play the original's puzzles, fetched daily into the repo by a workflow, with ours as the fallback. Done in #10.
+- [x] Import found words from nytimes.com with a console sync, like wordstats. Done in #13.
 
 ## Next
 - [ ] Share button that copies the rank and score as text.

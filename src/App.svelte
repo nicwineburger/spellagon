@@ -8,6 +8,7 @@ import Archive from "./ui/Archive.svelte";
 import Hints from "./ui/Hints.svelte";
 import Hive from "./ui/Hive.svelte";
 import HowToPlay from "./ui/HowToPlay.svelte";
+import Import from "./ui/Import.svelte";
 import Modal from "./ui/Modal.svelte";
 import ProgressBar from "./ui/Progress.svelte";
 import Rankings from "./ui/Rankings.svelte";
@@ -44,7 +45,7 @@ const points = $derived(progress.found.reduce((sum, word) => sum + score(word), 
 const ranks = $derived(ranksFor(puzzle.maxScore));
 const rank = $derived(rankFor(points, puzzle.maxScore));
 
-let view = $state<"splash" | "game" | "archive">("splash");
+let view = $state<"splash" | "game" | "archive" | "import">("splash");
 const playing = $derived(view === "game");
 let outer = $state<string[]>([]);
 let input = $state("");
@@ -303,7 +304,7 @@ async function pick(next: string) {
 }
 
 function openPanel(panel: Panel) {
-  if (panel === "archive") leave("archive");
+  if (panel === "archive" || panel === "import") leave(panel);
   else modal = panel;
 }
 
@@ -383,6 +384,11 @@ const chars = $derived(
     count={progress.found.length}
     onplay={play}
     onarchive={() => leave("archive")}
+  />
+{:else if view === "import"}
+  <Import
+    onback={() => leave("game")}
+    onimported={() => (progress = mergeProgress(progress, loadProgress(puzzle.id)))}
   />
 {:else if view === "archive"}
   <Archive {today} current={date} onpick={pick} onback={() => leave("splash")} />
