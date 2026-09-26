@@ -1,4 +1,4 @@
-import { PUZZLE_PATH, REQUEST_GAP_MS, STATE_BATCH, STATE_PATH } from "./endpoints";
+import { LOOKUP_WORKERS, PUZZLE_PATH, REQUEST_GAP_MS, STATE_BATCH, STATE_PATH, STATE_WORKERS } from "./endpoints";
 
 /**
  * The sync the player pastes into the console on nytimes.com. It runs on NYT's own origin, so the browser
@@ -21,6 +21,13 @@ export function buildSnippet(since: string): string {
     return r.json();
   };
   const SIGNED_OUT = [401, 403];
+  // Runs fn over items with n workers at a time, each pausing between its own requests.
+  const pool = async (items, n, fn) => {
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+      while (next < items.length) { const i = next++; await fn(items[i], i); await pause(); }
+    }));
+  };
   const probe = { errors: [], keys: [], schemas: [], noId: 0 };
   // Saved progress for many puzzles in one request. A batch that fails for another reason is retried
   // one id at a time. Signed out, every request would fail the same way, so the sync stops instead.
@@ -57,9 +64,21 @@ export function buildSnippet(since: string): string {
       catch (e) { if (SIGNED_OUT.includes(e.status)) throw e; probe.errors.push(e.message); }
     }
     log("syncing back to " + since + ". Keep this tab open.");
-    let looked = 0;
+    // The Spelling Bee page already knows the last two weeks' ids, which saves those lookups.
+    const known = new Map();
+    const pastPuzzles = (typeof window !== "undefined" && window.gameData && window.gameData.pastPuzzles) || {};
+    for (const p of [...(pastPuzzles.lastWeek || []), ...(pastPuzzles.thisWeek || [])]) {
+      if (p && p.printDate && p.id != null) known.set(p.printDate, p.id);
+    }
+    if (todayId != null) known.set(iso(last), todayId);
+    const dates = [];
     for (let t = Date.parse(since); t <= last; t += DAY) {
       const date = iso(t);
+      if (known.has(date)) byId.set(String(known.get(date)), date);
+      else dates.push(date);
+    }
+    let looked = 0;
+    await pool(dates, ${LOOKUP_WORKERS}, async (date) => {
       try {
         const puzzle = await get("${PUZZLE_PATH}" + date + ".json");
         if (puzzle && puzzle.id != null) byId.set(String(puzzle.id), date);
@@ -67,12 +86,13 @@ export function buildSnippet(since: string): string {
       } catch (e) {
         probe.errors.push(e.message);
       }
-      if (++looked % 30 === 0) log(looked + " days looked up, now at " + date);
-      await pause();
-    }
-    const ids = [...byId.keys()], days = [];
-    for (let i = 0; i < ids.length; i += ${STATE_BATCH}) {
-      for (const s of await states(ids.slice(i, i + ${STATE_BATCH}))) {
+      if (++looked % 100 === 0) log(looked + " of " + dates.length + " days looked up");
+    });
+    const ids = [...byId.keys()], days = [], batches = [];
+    for (let i = 0; i < ids.length; i += ${STATE_BATCH}) batches.push(ids.slice(i, i + ${STATE_BATCH}));
+    let read = 0;
+    await pool(batches, ${STATE_WORKERS}, async (batch) => {
+      for (const s of await states(batch)) {
         // One odd entry is noted and skipped, never allowed to lose the rest of the sync.
         try {
           if (!s || typeof s !== "object") continue;
@@ -87,9 +107,9 @@ export function buildSnippet(since: string): string {
           probe.errors.push("state for " + (s && s.puzzle_id) + ": " + e.message);
         }
       }
-      log("read saved words for " + Math.min(i + ${STATE_BATCH}, ids.length) + " of " + ids.length + " days");
-      await pause();
-    }
+      read += batch.length;
+      log("read saved words for " + read + " of " + ids.length + " days");
+    });
     days.sort((a, b) => (a.date < b.date ? -1 : 1));
     if (!days.length) console.warn("spellagon: no saved words came back for these dates.");
     const file = { version: 1, exportedAt: new Date().toISOString(), since, days, probe };

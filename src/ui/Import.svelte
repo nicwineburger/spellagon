@@ -37,11 +37,15 @@ $effect(() => heading?.focus());
 
 const valid = $derived(/^\d{4}-\d{2}-\d{2}$/.test(since) && since >= FIRST_DATE && since <= today);
 const snippet = $derived(valid ? buildSnippet(since) : "");
-// About a third of a second per day for the lookup and its pause, and as much again per batch of 20.
-const minutes = $derived.by(() => {
-  if (!valid) return 0;
+// Eight day lookups run at once, about a quarter second a round, then three batches of 20 at once.
+// A simulated year took about 13 seconds this way.
+const estimate = $derived.by(() => {
+  if (!valid) return "";
   const days = (Date.parse(today) - Date.parse(since)) / 86_400_000 + 1;
-  return Math.max(1, Math.round((days * 0.35 + (days / 20) * 0.35) / 60));
+  const seconds = (days / 8) * 0.25 + (days / 60) * 0.35;
+  if (seconds < 45) return "under a minute";
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return `about ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
 });
 
 async function copy() {
@@ -140,7 +144,7 @@ const skippedNote = $derived(
         <input type="date" bind:value={since} min={FIRST_DATE} max={today} />
       </label>
       <p class="note">
-        {#if valid}This takes about {plural(minutes, "minute")}. Keep the tab open; the console shows progress.{:else}Pick a
+        {#if valid}This takes {estimate}. Keep the tab open; the console shows progress.{:else}Pick a
           date from May 9, 2018 to today.{/if}
       </p>
       <pre>{snippet}</pre>
