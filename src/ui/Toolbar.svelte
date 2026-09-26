@@ -1,5 +1,5 @@
 <script lang="ts" module>
-export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
+export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive" | "import";
 </script>
 
 <script lang="ts">
@@ -88,6 +88,7 @@ export type Panel = "yesterday" | "hints" | "help" | "rankings" | "archive";
         <li><button type="button" onclick={() => choose("help")}>How to Play</button></li>
         <li><button type="button" onclick={() => choose("rankings")}>Rankings</button></li>
         <li><button type="button" onclick={() => choose("archive")}>Past Puzzles</button></li>
+        <li><button type="button" onclick={() => choose("import")}>Import Progress</button></li>
       </ul>
     </div>
   </nav>

@@ -411,3 +411,59 @@ test("at 3 a.m. mid-game, a player waits on the splash instead of getting a stan
   await expect(page.getByText("Today’s puzzle is on its way. Check back in a few minutes.")).toBeVisible();
   await expect(page.locator(".hive")).toHaveCount(0);
 });
+
+test("importing a sync file adds its words to that day's puzzle", async ({ page }) => {
+  await servePuzzles(page, { "2026-01-01": "abcdefg fbcdegab abed faced badge" });
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Import Progress" }).click();
+  await expect(page.getByRole("heading", { name: "Import Your Progress" })).toBeVisible();
+  await expect(page.locator("pre")).toContainText("/svc/games/state/spelling_bee/latests");
+
+  // A made-up sync file: two answers and a word that is not one.
+  const file = { version: 1, days: [{ date: "2026-01-01", found: ["abed", "faced", "zzzz"] }] };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "spellagon.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(file)),
+  });
+  await expect(page.getByText("Added 2 words across 1 day.")).toBeVisible();
+
+  await page.goto("/#2026-01-01");
+  await expect(page.getByRole("heading", { name: "Welcome Back" })).toBeVisible();
+  await expect(page.getByText("You’ve found 2 words.")).toBeVisible();
+});
+
+test("a file that is not a sync file says so", async ({ page }) => {
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Import Progress" }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "other.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ puzzles: [] })),
+  });
+  await expect(page.getByRole("alert")).toHaveText("This is not a Spellagon sync file. Run the sync again.");
+});
+
+test("an import names the days it could not use, with a space and the right verb", async ({ page }) => {
+  await servePuzzles(page, { "2026-01-01": "abcdefg fbcdegab abed faced badge" });
+  await play(page);
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Import Progress" }).click();
+  const file = {
+    version: 1,
+    days: [
+      { date: "2026-01-01", found: ["abed"] },
+      { date: "2099-01-01", found: ["abed"] },
+    ],
+  };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "spellagon.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(file)),
+  });
+  await expect(page.locator(".outcome p")).toHaveText(
+    "Added 1 word across 1 day. 1 day had no puzzle here yet and was left out.",
+  );
+});
