@@ -56,7 +56,8 @@ Typed letters not in the hive show in light gray. The center letter shows in yel
   wordstats import. The player copies a sync script, pastes it into the browser console on nytimes.com, and adds
   the file it downloads, `spellagon.json`.
 - The script runs on NYT's own origin with the player's own session, and reads no token. For each day it looks up
-  the puzzle id from `/svc/spelling-bee/v1/<date>.json`, then reads saved progress 20 ids at a time from
+  the puzzle id from `/svc/spelling-bee/v1/<date>.json`, eight days at once, reusing the two weeks of ids the
+  Spelling Bee page already holds. It then reads saved progress 20 ids at a time, three batches at once, from
   `/svc/games/state/spelling_bee/latests`. It checks the session with one request first and stops, saving
   nothing, when signed out. The file keeps each day's date and found words, plus a `probe` of the state keys,
   schema versions and errors it saw, for diagnosing a changed endpoint. Nothing else about the account.

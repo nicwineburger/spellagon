@@ -10,3 +10,7 @@ export const PUZZLE_PATH = "/svc/spelling-bee/v1/";
 export const STATE_PATH = "/svc/games/state/spelling_bee/latests";
 export const STATE_BATCH = 20;
 export const REQUEST_GAP_MS = 150;
+/** Day lookups in flight at once. They are small public files, so a handful at a time is gentle. */
+export const LOOKUP_WORKERS = 8;
+/** State batches in flight at once. */
+export const STATE_WORKERS = 3;

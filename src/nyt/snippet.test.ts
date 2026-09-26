@@ -119,3 +119,41 @@ test("an odd saved entry is noted and the rest of the sync still downloads", asy
   expect(file.days.length).toBeGreaterThan(0);
   expect(file.probe.errors.some((e: string) => e.startsWith("state for "))).toBe(true);
 });
+
+test("ids the Spelling Bee page already holds are not looked up again", async () => {
+  const urls: string[] = [];
+  const recent = Array.from({ length: 7 }, (_, i) =>
+    new Date(Date.now() - (i + 2) * 86_400_000).toISOString().slice(0, 10),
+  );
+  const fetchStub = async (url: string) => {
+    urls.push(url);
+    const date = url.match(/(\d{4}-\d{2}-\d{2})\.json$/)?.[1];
+    if (date) return { ok: true, status: 200, json: async () => ({ id: Date.parse(date) / 86_400_000 }) };
+    return { ok: true, status: 200, json: async () => ({ states: [] }) };
+  };
+  const since = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10);
+  const pageData = {
+    gameData: { pastPuzzles: { thisWeek: recent.map((printDate, i) => ({ printDate, id: 500 + i })) } },
+  };
+  const run = new Function(
+    "fetch",
+    "document",
+    "URL",
+    "Blob",
+    "console",
+    "setTimeout",
+    "window",
+    `return ${buildSnippet(since)}`,
+  );
+  await run(
+    fetchStub,
+    { createElement: () => ({ click() {} }) },
+    { createObjectURL: () => "" },
+    class {},
+    { log() {}, warn() {}, error() {} },
+    (fn: () => void) => fn(),
+    pageData,
+  );
+  for (const date of recent) expect(urls).not.toContain(`/svc/spelling-bee/v1/${date}.json`);
+  expect(urls.some((u) => u.includes("puzzle_ids=") && u.includes("500"))).toBe(true);
+});
