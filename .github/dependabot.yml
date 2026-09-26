@@ -1,14 +1,26 @@
 version: 2
+# Monthly, in two kinds of pull request per ecosystem:
+# - minor and patch updates, grouped into one, since they should be safe together;
+# - each major update on its own, so one breaking change never holds back the rest.
+# A new release waits 7 days before it is proposed, so a bad or compromised release is usually pulled first.
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
     groups:
-      all: { patterns: ["*"] }
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # svelte-check does not support TypeScript 7 yet, and fails the typecheck (see #2). Drop this once it does.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
     groups:
-      all: { patterns: ["*"] }
+      minor-and-patch:
+        update-types: [minor, patch]
     commit-message: { prefix: "ci(deps)" }
