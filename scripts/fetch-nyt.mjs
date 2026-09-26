@@ -45,19 +45,22 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function toEntry(data) {
   const center = data?.center_letter;
   const outer = data?.outer_letters;
-  const answers = data?.answers;
+  // The endpoint lists pangrams apart from the other answers, so the full answer list is both together.
+  const pangrams = Array.isArray(data?.pangrams) ? data.pangrams : [];
+  const answers = Array.isArray(data?.answers) ? [...new Set([...pangrams, ...data.answers])] : undefined;
   if (typeof center !== "string" || !/^[a-z]$/.test(center)) return { error: "bad center letter" };
   if (typeof outer !== "string" || !/^[a-z]{6}$/.test(outer)) return { error: "bad outer letters" };
   const letters = center + outer;
   if (new Set(letters).size !== 7) return { error: "repeated letters" };
   if (!Array.isArray(answers) || answers.length === 0) return { error: "no answers" };
-  const words = answers.map((w) => String(w).toLowerCase());
   const allowed = new Set(letters);
-  if (!words.every((w) => /^[a-z]{4,}$/.test(w) && w.includes(center) && [...w].every((c) => allowed.has(c)))) {
-    return { error: "an answer breaks the rules" };
-  }
+  const fits = (w) => /^[a-z]{4,}$/.test(w) && w.includes(center) && [...w].every((c) => allowed.has(c));
+  const all = answers.map((w) => String(w).toLowerCase());
+  // A word the game could never accept is left out and reported. The day stays playable without it.
+  const words = all.filter(fits);
+  const dropped = all.filter((w) => !fits(w));
   if (!words.some((w) => new Set(w).size === 7)) return { error: "no pangram" };
-  return { entry: [letters, ...words].join(" ") };
+  return { entry: [letters, ...words].join(" "), dropped };
 }
 
 async function fetchDay(date) {
@@ -125,6 +128,7 @@ for (const signal of ["SIGTERM", "SIGINT"]) {
 for (const [i, date] of wanted.slice(0, max).entries()) {
   const result = await fetchDay(date);
   if (result.entry) {
+    if (result.dropped?.length) problems.push(`${date}: left out ${result.dropped.join(", ")}`);
     const month = date.slice(0, 7);
     months.set(month, { ...(months.get(month) ?? {}), [date]: result.entry });
     changed.add(month);
